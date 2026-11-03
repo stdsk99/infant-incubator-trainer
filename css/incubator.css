@@ -1,0 +1,104 @@
+/* ===== ภาพตู้อบทารก (ใช้ทั้งภาพตัดโมดูล 1, ภาพในแอนิเมชันเส้นทางสัญญาณ และภาพในโหมดเรียนรู้/สอบ) ===== */
+:root{ --heat:#e8590c; --air:#e8590c; --o2:#2f6fb0; --water:#7aa7c7; }
+@media (prefers-color-scheme: dark){ :root{ --heat:#ff8a4c; --air:#ff8a4c; --o2:#79b2ec; --water:#5d8fb3; } }
+
+.ib-hood{fill:var(--accent-soft);fill-opacity:.35;stroke:currentColor;stroke-width:1.8}
+.ib-port{fill:var(--card);fill-opacity:.6;stroke:currentColor;stroke-width:1;stroke-dasharray:3 2}
+.ib-mat{fill:var(--line);stroke:currentColor;stroke-width:.6}
+.ib-baby ellipse,.ib-baby circle{fill:#f2c9a8;stroke:#b07a55;stroke-width:.8}
+.ib-probe{fill:none;stroke:var(--low);stroke-width:1.8}
+.ib-tip{fill:var(--low);transition:transform .5s}
+.ib-jack{fill:var(--low);opacity:.8}
+.ib-deck{fill:var(--line);fill-opacity:.35;stroke:currentColor;stroke-width:1}
+.ib-filter{fill:var(--card);stroke:currentColor;stroke-width:.8;stroke-dasharray:2 1.5}
+.ib-fanring{fill:var(--card);stroke:currentColor;stroke-width:1}
+.ib-fan{fill:currentColor;opacity:.7;transform-box:view-box}
+.ib-hub{fill:currentColor}
+.ib-fins rect,.ib-finsr{fill:#b9bec6;stroke:currentColor;stroke-width:.6}
+.ib-coil{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;transition:stroke .4s}
+.ib-sens{fill:var(--card);stroke:currentColor;stroke-width:.9}
+.ib-th{fill:var(--hi)}
+.ib-tank{fill:var(--card);stroke:currentColor;stroke-width:1}
+.ib-water{fill:var(--water);opacity:.55}
+.ib-steam{fill:none;stroke:var(--muted);stroke-width:1.4;stroke-linecap:round;opacity:0}
+.ib-o2pipe{fill:none;stroke:var(--o2);stroke-width:4;stroke-linecap:round;opacity:.45}
+.ib-o2flow{fill:none;stroke:#fff;stroke-width:1.4;stroke-dasharray:2 7;opacity:0}
+.ib-valve,.ib-cellbox{fill:var(--card);stroke:currentColor;stroke-width:.9}
+.ib-cell{fill:var(--o2);opacity:.6}
+.ib-scr{fill:currentColor}
+.ib-scrt{font:600 10px ui-monospace,Menlo,monospace;fill:var(--bg)}
+.ib-scrt.sm,.lp-scrt.sm{font-size:8.5px;font-weight:500}
+.ib-led{fill:var(--accent)}
+.ib-snd path{fill:none;stroke:var(--warn);stroke-width:1.8;stroke-linecap:round;opacity:0}
+.ib-board{fill:var(--accent);fill-opacity:.18;stroke:var(--accent)}
+.ib-board2{fill:var(--line);stroke:currentColor;stroke-width:.8}
+.ib-chip{fill:currentColor;opacity:.8}
+.ib-chipt{fill:var(--bg)}
+.ib-psu{fill:var(--line);stroke:currentColor;stroke-width:.8}
+.ib-batt{fill:none;stroke:currentColor;stroke-width:1.2}
+.ib-bt{fill:currentColor}
+.ib-bl{fill:var(--accent)}
+.ib-hot rect{fill:var(--warn);opacity:0;transition:opacity .8s;pointer-events:none}
+
+/* ลมอุ่นหมุนเวียน */
+.ib-air{fill:none;stroke:var(--air);stroke-width:2;stroke-dasharray:4 7;stroke-linecap:round;opacity:.25}
+.ib-air.ret{stroke:var(--muted)}
+.ib-air.in{stroke:var(--muted)}
+.ib-air.low{opacity:.18}
+
+/* ---------- สถานะ: ใช้ร่วมกันทุกภาพ ---------- */
+svg.ib.run .ib-fan,.flcut.run .ib-fan{animation:spin .6s linear infinite}
+svg.ib.run.slow .ib-fan,.flcut.run.slow .ib-fan{animation-duration:3.2s}
+svg.ib.run .ib-air,.flcut.run .ib-air{opacity:.9;animation:ibair .9s linear infinite}
+svg.ib.run.slow .ib-air,.flcut.run.slow .ib-air{opacity:.35;animation-duration:3.5s}
+svg.ib.run:not(.noheat) .ib-coil,.flcut.run:not(.noheat) .ib-coil{stroke:var(--heat);filter:drop-shadow(0 0 2px var(--heat))}
+svg.ib.noheat .ib-air:not(.ret):not(.in),.flcut.noheat .ib-air:not(.ret):not(.in){stroke:var(--low)}
+@keyframes ibair{to{stroke-dashoffset:-11}}
+svg.ib.hot .ib-hot rect,.flcut.hot .ib-hot rect{opacity:.16}
+svg.ib.probeoff .ib-tip,.flcut.probeoff .ib-tip{transform:translate(-4px,-14px)}
+svg.ib.probeoff .ib-probe,.flcut.probeoff .ib-probe{stroke-dasharray:3 3;stroke:var(--warn)}
+/* ไอน้ำ: ภาพตัดแสดงเมื่อเดินเครื่อง ภาพในโหมดเรียนรู้แสดงเมื่อสั่ง steam */
+#svg-cut.run .ib-steam,.flcut.run .ib-steam,svg.lp.steam .ib-steam{opacity:.8;animation:ibsteam 1.6s ease-in-out infinite}
+@keyframes ibsteam{0%{opacity:0;transform:translateY(4px)}50%{opacity:.9}100%{opacity:0;transform:translateY(-6px)}}
+#svg-cut.run .ib-o2flow,svg.lp.o2on .ib-o2flow{opacity:.9;animation:ibair .8s linear infinite}
+/* alarm ในภาพแอนิเมชันเส้นทางสัญญาณ */
+.flcut.buzz .ib-led{fill:var(--warn);animation:blink .5s steps(1) infinite}
+.flcut.buzz .ib-snd path{animation:snd 1s ease-out infinite}
+.flcut .part.fl-alarm .ib-scr{fill:var(--c-alarm,var(--warn))}
+
+/* ---------- ภาพในโหมดเรียนรู้/สอบ ---------- */
+svg.lp.ib .lp-scrt{font-size:11px}
+svg.lp.ib .lp-body{fill:var(--card);fill-opacity:.5}
+svg.lp.alarm .lp-scrt{fill:#fff}
+svg.lp.off .ib-coil{stroke:currentColor;filter:none}
+@media (prefers-reduced-motion:reduce){
+  svg.ib.run .ib-fan,.flcut.run .ib-fan{animation-duration:2.4s}
+  svg.ib.run .ib-air,.flcut.run .ib-air{animation-duration:3s}
+}
+
+/* ---------- ภาพขยายชิ้นส่วน ---------- */
+.zm-cab{fill:var(--low);opacity:.25;stroke:var(--low)}
+.zm-cond{fill:none;stroke:#b87333;stroke-width:3}
+.probe_ok .zm-cond.br,.probe_broken .zm-cond.ok{display:none}
+.zm-crease{fill:none;stroke:var(--muted);stroke-width:1.2;opacity:0}
+.probe_broken .zm-crease{opacity:1}
+.zm-tipb{fill:var(--low);opacity:.8}
+.zm.flexing .zm-cab,.zm.flexing .zm-cond{animation:flexb .45s ease-in-out 4;transform-box:view-box;transform-origin:64px 46px}
+@keyframes flexb{50%{transform:rotate(-8deg)}}
+.zm-ch{fill:var(--card);stroke:currentColor;stroke-width:.9}
+.zm-wat{fill:var(--water);opacity:.45}
+.zm-rod{fill:#b9bec6;stroke:currentColor;stroke-width:.9}
+.zm-scale .zm-res circle{fill:#f4f1e8;stroke:#c9c1a8;stroke-width:1;transition:opacity .6s}
+.zm.clean .zm-res circle,.scale_clean .zm-res circle{opacity:0}
+.zm-blade path{fill:currentColor;opacity:.55}
+.zm-fan .zm-res path{fill:none;stroke:#8a7a5c;stroke-width:2.2;stroke-linecap:round;transition:opacity .6s}
+.fan_clean .zm-res path{opacity:0}
+.zm-fin{fill:#b9bec6;stroke:currentColor;stroke-width:.6}
+.coil_open .zm-wire.ok{opacity:0} .coil_open .zm-burn{opacity:.6}
+.coil_ok .zm-wire.br{opacity:0} .coil_ok .zm-burn{opacity:0}
+.fuse_open .zm-burn{opacity:.6}
+.zm-cellb{fill:var(--o2);fill-opacity:.25;stroke:var(--o2)}
+.cell_old .zm-new,.cell_new .zm-old{display:none}
+.zm-th{fill:var(--accent);opacity:.8}
+.zm-thbad{fill:var(--warn)}
+.zm.wiping{animation:pulse .5s ease-in-out 3}

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infant Incubator Repair Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/incubator.css">
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="logo">IN</div>
+    <div class="brand">Infant Incubator Repair Trainer<small>สื่อฝึกซ่อมและบำรุงรักษาตู้อบทารก · ครบ 6 โมดูล</small></div>
+  </div>
+  <nav id="nav">
+    <a href="#home" data-v="home">หน้าแรก</a>
+    <a href="#principle" data-v="principle">1 · หลักการทำงาน</a>
+    <a href="#alarms" data-v="alarms">2 · Alarm</a>
+    <a href="#repair" data-v="repair">3 · จำลองการซ่อม</a>
+    <a href="#pm" data-v="pm">4 · ทดสอบ/PM</a>
+    <a href="#order" data-v="order">5 · ลำดับขั้นตอน</a>
+    <a href="#quiz" data-v="quiz">6 · แบบทดสอบ</a>
+    <a href="#scores" data-v="scores">ผลของฉัน</a>
+  </nav>
+</header>
+
+<main>
+<!-- HOME -->
+<section class="view" id="v-home">
+  <h1>ฝึกซ่อมและบำรุงรักษาตู้อบทารก (Infant Incubator)</h1>
+  <p class="muted">เครื่องในแอปนี้เป็น <b>ตู้อบทารกจำลอง</b> ที่อ้างอิงโครงสร้างและหลักการทำงานของตู้อบแบบลมร้อนหมุนเวียน (forced-air convection) ตระกูล <b>GE Giraffe Incubator</b> เนื้อหาเน้นงานซ่อมและบำรุงรักษาของช่างเครื่องมือแพทย์ ไม่ได้ครอบคลุมการดูแลทารกทางคลินิก</p>
+  <div class="cards">
+    <a class="card" href="#principle"><div class="num">โมดูล 1</div><h3>หลักการทำงาน</h3><p>แตะชิ้นส่วนบนภาพตัดของตู้อบหรือ block diagram เพื่อดูหน้าที่ อาการเสียที่พบบ่อย และวิธีตรวจ พร้อมแอนิเมชันเส้นทางสัญญาณ</p></a>
+    <a class="card" href="#alarms"><div class="num">โมดูล 2</div><h3>Alarm</h3><p>alarm ที่พบบ่อย 15 รายการ แยกสาเหตุจากผู้ใช้กับสาเหตุทางเทคนิค พร้อมลำดับการตรวจ</p></a>
+    <a class="card" href="#repair"><div class="num">โมดูล 3</div><h3>จำลองการซ่อม</h3><p>8 เคสจากใบแจ้งซ่อม ตรวจหาสาเหตุ วินิจฉัย เลือกวิธีซ่อม และทดสอบก่อนส่งคืน มีทั้งโหมดเรียนรู้และโหมดสอบ</p></a>
+    <a class="card" href="#pm"><div class="num">โมดูล 4</div><h3>การทดสอบหลังซ่อม / PM</h3><p>ประสิทธิภาพอุณหภูมิด้วย incubator analyzer, skin probe, ความชื้น, O₂, เสียงและลม, alarm และ electrical safety (IEC 62353)</p></a>
+    <a class="card" href="#order"><div class="num">โมดูล 5</div><h3>ลำดับขั้นตอน</h3><p>แตะเรียงขั้นตอนงานซ่อม การถอดล้างตู้ระหว่างผู้ป่วย และการทำ PM ด้วย incubator analyzer</p></a>
+    <a class="card" href="#quiz"><div class="num">โมดูล 6</div><h3>แบบทดสอบ</h3><p>สุ่ม 20 ข้อจากคลัง 30 ข้อ ส่งแล้วเห็นคะแนนแยกหมวดพร้อมเฉลย</p></a>
+  </div>
+  <div class="note"><b>ข้อควรทราบ:</b> สื่อนี้ใช้เพื่อการเรียนการสอนเท่านั้น ค่าตัวเลขใน service mode และราคาอะไหล่เป็นค่าตัวอย่าง การซ่อมเครื่องจริงต้องทำตาม service manual ของผู้ผลิตรุ่นนั้น โดยช่างที่ผ่านการอบรม และต้องทดสอบความปลอดภัยทุกครั้งก่อนนำเครื่องกลับไปใช้กับผู้ป่วย</div>
+</section>
+
+<!-- PRINCIPLE -->
+<section class="view" id="v-principle">
+  <h1>หลักการทำงาน</h1>
+  <p class="muted">แตะชิ้นส่วนบนภาพเพื่อดูรายละเอียด กด “เดินเครื่อง” เพื่อดูลมอุ่นหมุนเวียนในตู้ หรือเลือก “เส้นทางสัญญาณ” เพื่อดูว่าค่าจากเซนเซอร์และคำสั่งควบคุมวิ่งไปทางไหนบ้าง</p>
+  <div class="tools">
+    <div class="seg"><button id="bt-cut" class="on">ภาพตัดภายใน</button><button id="bt-blk">Block diagram</button><button id="bt-flow">เส้นทางสัญญาณ</button></div>
+    <button id="bt-run">▶ เดินเครื่อง</button>
+  </div>
+  <div class="layout">
+    <div>
+      <figure id="fig-cut">
+        <svg class="dia ib" id="svg-cut" viewBox="0 0 360 340" role="img" aria-label="ภาพตัดด้านข้างของตู้อบทารกจำลอง แสดงฝาครอบ ทารกบนเตียง ใต้พื้นตู้มีพัดลม ฮีตเตอร์ กล่องเซนเซอร์อากาศ และระบบทำความชื้น ด้านล่างมีระบบออกซิเจน ด้านขวาเป็นชุดควบคุมและภาคจ่ายไฟ">
+          <defs>
+            <marker id="ibar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--hi)"/></marker>
+          </defs>
+          <!-- hood -->
+          <g class="part" data-id="hood">
+            <rect class="hit" x="12" y="20" width="256" height="156" rx="10"/>
+            <path class="ib-hood" d="M18 176 V70 Q18 30 60 30 H222 Q262 30 262 70 V176"/>
+            <circle class="ib-port" cx="70" cy="104" r="17"/><circle class="ib-port" cx="208" cy="104" r="17"/>
+            <text class="lbl s" x="70" y="132" text-anchor="middle">porthole</text>
+            <text class="lbl" x="140" y="46" text-anchor="middle">ฝาครอบ (Hood)</text>
+          </g>
+          <!-- warm air curtain -->
+          <g class="ib-airg">
+            <path class="ib-air" d="M30 176 V64 Q30 52 44 50" marker-end="url(#ibar)"/>
+            <path class="ib-air" d="M250 176 V64 Q250 52 236 50" marker-end="url(#ibar)"/>
+            <path class="ib-air ret" d="M140 60 V150"/>
+          </g>
+          <!-- mattress + baby -->
+          <rect class="ib-mat" x="40" y="160" width="200" height="12" rx="4"/>
+          <g class="ib-baby"><ellipse cx="128" cy="151" rx="34" ry="9"/><circle cx="170" cy="148" r="10"/></g>
+          <!-- skin probe -->
+          <g class="part" data-id="skinprobe">
+            <rect class="hit" x="118" y="132" width="146" height="28" rx="6"/>
+            <path class="ib-probe" d="M132 144 C150 132 196 132 246 146"/>
+            <circle class="ib-tip" cx="132" cy="144" r="3.5"/>
+            <rect x="242" y="140" width="12" height="14" rx="2" class="ib-jack"/>
+            <text class="lbl s" x="196" y="129" text-anchor="middle">Skin probe</text>
+          </g>
+          <!-- deck chamber -->
+          <rect class="ib-deck" x="16" y="176" width="248" height="84" rx="6"/>
+          <text class="lbl s" x="22" y="192">ช่องลมใต้พื้นตู้</text>
+          <path class="ib-air low" d="M44 200 H230"/>
+          <!-- filter -->
+          <g class="part" data-id="filter">
+            <rect class="hit" x="0" y="226" width="40" height="34" rx="5"/>
+            <rect x="18" y="232" width="10" height="24" rx="2" class="ib-filter"/>
+            <path class="ib-air in" d="M2 244 H18"/>
+            <text class="lbl s" x="4" y="270">แผ่นกรอง</text>
+          </g>
+          <!-- fan -->
+          <g class="part" data-id="fan">
+            <rect class="hit" x="36" y="208" width="52" height="50" rx="6"/>
+            <circle cx="62" cy="232" r="20" class="ib-fanring"/>
+            <g class="ib-fan" style="transform-origin:62px 232px"><path d="M62 232 L62 214 Q72 220 62 232 Z M62 232 L80 232 Q74 242 62 232 Z M62 232 L62 250 Q52 244 62 232 Z M62 232 L44 232 Q50 222 62 232 Z"/></g>
+            <circle cx="62" cy="232" r="3" class="ib-hub"/>
+          </g>
+          <!-- heater -->
+          <g class="part" data-id="heater">
+            <rect class="hit" x="92" y="208" width="84" height="44" rx="6"/>
+            <g class="ib-fins"><rect x="98" y="238" width="72" height="8" rx="2"/></g>
+            <path class="ib-coil" d="M98 228 l6 -10 l6 10 l6 -10 l6 10 l6 -10 l6 10 l6 -10 l6 10 l6 -10 l6 10 l6 -10 l6 10"/>
+            <text class="lbl s" x="134" y="210" text-anchor="middle">Heater</text>
+          </g>
+          <!-- air probe -->
+          <g class="part" data-id="airprobe">
+            <rect class="hit" x="96" y="178" width="72" height="20" rx="5"/>
+            <rect x="110" y="182" width="44" height="12" rx="3" class="ib-sens"/>
+            <circle cx="122" cy="188" r="2.6" class="ib-th"/><circle cx="142" cy="188" r="2.6" class="ib-th"/>
+            <text class="lbl s" x="172" y="191">Air probe A/B</text>
+          </g>
+          <!-- humidifier -->
+          <g class="part" data-id="humid">
+            <rect class="hit" x="184" y="204" width="68" height="54" rx="6"/>
+            <rect x="192" y="210" width="52" height="42" rx="4" class="ib-tank"/>
+            <rect x="194" y="232" width="48" height="18" rx="2" class="ib-water"/>
+            <path class="ib-steam" d="M206 228 q-4 -6 0 -12 q4 -6 0 -12 M222 228 q-4 -6 0 -12 q4 -6 0 -12"/>
+            <text class="lbl s" x="212" y="273" text-anchor="middle">Humidifier</text>
+          </g>
+          <!-- O2 -->
+          <g class="part" data-id="o2">
+            <rect class="hit" x="40" y="272" width="226" height="56" rx="6"/>
+            <path class="ib-o2pipe" d="M44 300 H112 M162 300 H196 M232 300 H258 V262"/>
+            <path class="ib-o2flow" d="M44 300 H112 M162 300 H196 M232 300 H258 V262"/>
+            <rect x="112" y="288" width="50" height="24" rx="4" class="ib-valve"/><text class="lbl s" x="137" y="304" text-anchor="middle">วาล์ว</text>
+            <rect x="196" y="286" width="36" height="28" rx="4" class="ib-cellbox"/>
+            <rect x="200" y="290" width="12" height="20" rx="3" class="ib-cell"/><rect x="216" y="290" width="12" height="20" rx="3" class="ib-cell"/>
+            <text class="lbl s" x="46" y="292">O₂ จากท่อ</text>
+            <text class="lbl s" x="214" y="324" text-anchor="middle">O₂ sensor ×2</text>
+          </g>
+          <!-- right column: electronics -->
+          <g class="part" data-id="display">
+            <rect class="hit" x="274" y="24" width="80" height="62" rx="6"/>
+            <rect x="278" y="30" width="72" height="44" rx="5" class="ib-scr"/>
+            <text class="ib-scrt" x="283" y="48">AIR 36.0</text>
+            <text class="ib-scrt sm" x="283" y="64">SET 36.0 °C</text>
+            <circle class="ib-led" cx="342" cy="80" r="3.5"/>
+            <g class="ib-snd"><path d="M300 80 q4 4 0 8"/><path d="M306 77 q7 7 0 14"/></g>
+          </g>
+          <g class="part" data-id="control">
+            <rect class="hit" x="274" y="94" width="80" height="58" rx="6"/>
+            <rect x="280" y="100" width="68" height="46" rx="5" class="ib-board"/>
+            <rect x="300" y="110" width="28" height="18" rx="2" class="ib-chip"/>
+            <text x="314" y="123" font-size="8" text-anchor="middle" class="ib-chipt">MCU</text>
+            <text class="lbl s" x="314" y="141" text-anchor="middle">Control board</text>
+          </g>
+          <g class="part" data-id="relay">
+            <rect class="hit" x="274" y="158" width="80" height="44" rx="6"/>
+            <rect x="280" y="164" width="68" height="32" rx="5" class="ib-board2"/>
+            <rect x="286" y="170" width="14" height="10" rx="1" class="ib-chip"/><rect x="304" y="170" width="14" height="10" rx="1" class="ib-chip"/>
+            <text class="lbl s" x="314" y="192" text-anchor="middle">Relay / SSR</text>
+          </g>
+          <g class="part" data-id="psu">
+            <rect class="hit" x="274" y="208" width="80" height="54" rx="6"/>
+            <rect x="280" y="214" width="68" height="42" rx="5" class="ib-psu"/>
+            <text class="lbl s" x="314" y="232" text-anchor="middle">Power supply</text>
+            <text class="lbl s" x="314" y="245" text-anchor="middle">+ fuse</text>
+          </g>
+          <g class="part" data-id="battery">
+            <rect class="hit" x="274" y="268" width="80" height="40" rx="6"/>
+            <rect x="290" y="278" width="40" height="18" rx="3" class="ib-batt"/><rect x="330" y="283" width="4" height="8" rx="1" class="ib-bt"/>
+            <rect x="292" y="280" width="26" height="14" rx="2" class="ib-bl"/>
+            <text class="lbl s" x="314" y="306" text-anchor="middle">Backup battery</text>
+          </g>
+          <!-- overlays used by animations -->
+          <g class="ib-hot"><rect x="20" y="34" width="240" height="140" rx="30"/></g>
+        </svg>
+        <figcaption>พัดลมดูดอากาศผ่านแผ่นกรองและฮีตเตอร์ใต้พื้นตู้ อากาศอุ่นและชื้นไหลขึ้นตามผนังทั้งสองข้างเป็นม่านอากาศรอบทารก แล้วไหลกลับลงมาใต้พื้นตู้ผ่านกล่องเซนเซอร์</figcaption>
+      </figure>
+
+      <figure id="fig-blk" style="display:none">
+        <svg class="dia" id="svg-blk" viewBox="0 0 360 470" role="img" aria-label="Block diagram: เซนเซอร์อุณหภูมิ ความชื้น ออกซิเจน และรอบพัดลมส่งค่าเข้าบอร์ดควบคุม บอร์ดควบคุมสั่งรีเลย์ฮีตเตอร์ พัดลม ฮิวมิดิไฟเออร์ วาล์วออกซิเจน และจอ ภาคจ่ายไฟเลี้ยงทุกส่วน">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+          </defs>
+          <text class="lbl s" x="62" y="16" text-anchor="middle">INPUT</text>
+          <text class="lbl s" x="180" y="16" text-anchor="middle">ควบคุม</text>
+          <text class="lbl s" x="298" y="16" text-anchor="middle">OUTPUT</text>
+          <g id="blk-in"></g>
+          <g class="part" data-id="control">
+            <rect class="hit" x="128" y="120" width="104" height="140" rx="10"/>
+            <rect x="132" y="124" width="96" height="132" rx="9" fill="var(--accent)" opacity=".18" stroke="var(--accent)" stroke-width="1.5"/>
+            <text x="180" y="168" font-size="14" font-weight="600" text-anchor="middle" fill="currentColor">MCU</text>
+            <text class="lbl s" x="180" y="185" text-anchor="middle">+ EEPROM (cal/log)</text>
+            <text class="lbl s" x="180" y="200" text-anchor="middle">+ วงจรป้องกัน</text>
+            <text class="lbl s" x="180" y="213" text-anchor="middle">ร้อนเกิน (แยก)</text>
+          </g>
+          <g id="blk-out"></g>
+          <g class="part" data-id="psu">
+            <rect class="hit" x="8" y="398" width="160" height="56" rx="8"/>
+            <rect x="12" y="402" width="152" height="48" rx="7" fill="var(--line)" stroke="currentColor" stroke-width=".8"/>
+            <text class="lbl" x="88" y="423" text-anchor="middle">Power supply</text>
+            <text class="lbl s" x="88" y="438" text-anchor="middle">fuse · หม้อแปลงแยก</text>
+          </g>
+          <g class="part" data-id="battery">
+            <rect class="hit" x="192" y="398" width="160" height="56" rx="8"/>
+            <rect x="196" y="402" width="152" height="48" rx="7" class="st" stroke-width="1.2"/>
+            <text class="lbl" x="272" y="423" text-anchor="middle">Backup battery</text>
+            <text class="lbl s" x="272" y="438" text-anchor="middle">เลี้ยง alarm ไฟดับ</text>
+          </g>
+          <line x1="164" y1="426" x2="194" y2="426" stroke="currentColor" marker-end="url(#ar)"/>
+          <line x1="180" y1="398" x2="180" y2="260" stroke="currentColor" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+          <text class="lbl s" x="186" y="380">ไฟเลี้ยงทุกวงจร</text>
+        </svg>
+        <figcaption>บอร์ดควบคุมอ่านค่าเซนเซอร์ทุกตัวตลอดเวลา ถ้าค่าใดผิดปกติจะตัดฮีตเตอร์และสั่ง alarm ทันที ส่วนวงจรป้องกันอุณหภูมิเกินทำงานแยกจากซอฟต์แวร์</figcaption>
+      </figure>
+    </div>
+
+    <aside class="panel" id="panel">
+      <h2>เลือกชิ้นส่วน</h2>
+      <p class="muted">แตะชิ้นส่วนใดก็ได้บนภาพ หรือเลือกจากรายการด้านล่าง</p>
+      <div class="chips" id="chips"></div>
+    </aside>
+  </div>
+  <div id="flow" hidden></div>
+</section>
+
+<section class="view" id="v-repair"><div id="sim"></div></section>
+<section class="view" id="v-pm"><div id="pm"></div></section>
+<section class="view" id="v-order"><div id="order"></div></section>
+<section class="view" id="v-quiz"><div id="quiz"></div></section>
+<section class="view" id="v-scores"><div id="scores"></div></section>
+
+<!-- ALARMS -->
+<section class="view" id="v-alarms">
+  <h1>Alarm ที่พบบ่อย</h1>
+  <p class="muted">ชื่อ alarm ใช้ตามแบบที่พบในตู้อบตระกูล Giraffe ข้อความจริงอาจต่างกันตามรุ่นและเวอร์ชันซอฟต์แวร์ แตะรายการเพื่อดูสาเหตุและลำดับการตรวจ</p>
+  <input class="search" id="q" type="search" placeholder="ค้นหา เช่น fan, heater, probe, O₂">
+  <div class="tools" id="pf">
+    <button data-p="all" class="on">ทั้งหมด</button>
+    <button data-p="h">สูง</button>
+    <button data-p="m">กลาง</button>
+    <button data-p="l">ต่ำ</button>
+  </div>
+  <div class="legend"><span><b style="color:var(--warn)">สูง</b> อันตรายต่อทารก ต้องแก้ทันที</span><span><b style="color:var(--mid)">กลาง</b> ต้องแก้ไขเร็ว</span><span><b style="color:var(--low)">ต่ำ</b> แจ้งเตือน</span></div>
+  <div id="alist"></div>
+  <p class="muted" id="aempty" style="display:none;margin-top:14px">ไม่พบ alarm ที่ตรงกับคำค้น</p>
+</section>
+</main>
+
+<footer>สื่อการสอนวิชาเครื่องมือแพทย์ · เนื้อหาและภาพทั้งหมดจัดทำขึ้นใหม่เพื่อการศึกษา โดยอ้างอิงหลักการทำงานจากเอกสารของผู้ผลิต ไม่ได้คัดลอกภาพหรือตารางจากคู่มือ · GE และ Giraffe เป็นเครื่องหมายการค้าของเจ้าของ แอปนี้ไม่ได้เกี่ยวข้องกับผู้ผลิต</footer>
+
+<script src="data/config.js"></script>
+<script src="data/parts.js"></script>
+<script src="data/alarms.js"></script>
+<script src="data/cases.js"></script>
+<script src="data/learn.js"></script>
+<script src="data/flow.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/app.js"></script>
+<script src="js/learn.js"></script>
+<script src="data/pm.js"></script>
+<script src="data/order.js"></script>
+<script src="data/quiz.js"></script>
+<script src="js/cert.js"></script>
+<script src="js/score.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/pm.js"></script>
+<script src="js/order.js"></script>
+<script src="js/quiz.js"></script>
+</body>
+</html>
