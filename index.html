@@ -64,13 +64,7 @@
             <path class="ib-hood" d="M18 176 V70 Q18 30 60 30 H222 Q262 30 262 70 V176"/>
             <circle class="ib-port" cx="70" cy="104" r="17"/><circle class="ib-port" cx="208" cy="104" r="17"/>
             <text class="lbl s" x="70" y="132" text-anchor="middle">porthole</text>
-            <text class="lbl" x="140" y="46" text-anchor="middle">ฝาครอบ (Hood)</text>
-          </g>
-          <!-- warm air curtain -->
-          <g class="ib-airg">
-            <path class="ib-air" d="M30 176 V64 Q30 52 44 50" marker-end="url(#ibar)"/>
-            <path class="ib-air" d="M250 176 V64 Q250 52 236 50" marker-end="url(#ibar)"/>
-            <path class="ib-air ret" d="M140 60 V150"/>
+            <text class="lbl" x="140" y="76" text-anchor="middle">ฝาครอบ (Hood)</text>
           </g>
           <!-- mattress + baby -->
           <rect class="ib-mat" x="40" y="160" width="200" height="12" rx="4"/>
@@ -85,13 +79,20 @@
           </g>
           <!-- deck chamber -->
           <rect class="ib-deck" x="16" y="176" width="248" height="84" rx="6"/>
-          <text class="lbl s" x="22" y="192">ช่องลมใต้พื้นตู้</text>
-          <path class="ib-air low" d="M44 200 H230"/>
+          <!-- air circulation loop: fan → heater → humidifier → up → across top → down → air probe → back to fan -->
+          <g class="ib-airg">
+            <path class="ib-air" d="M86 226 H174 Q182 226 182 218 V204 H242" marker-end="url(#ibar)"/>
+            <path class="ib-air" d="M250 198 V66 Q250 52 236 52" marker-end="url(#ibar)"/>
+            <path class="ib-air" d="M226 52 H54" marker-end="url(#ibar)"/>
+            <path class="ib-air" d="M44 52 Q30 52 30 66 V176" marker-end="url(#ibar)"/>
+            <path class="ib-air" d="M30 184 Q30 189 38 189 H62 V206" marker-end="url(#ibar)"/>
+          </g>
+          <text class="lbl s" x="134" y="256" text-anchor="middle">ช่องลมใต้พื้นตู้</text>
           <!-- filter -->
           <g class="part" data-id="filter">
             <rect class="hit" x="0" y="226" width="40" height="34" rx="5"/>
             <rect x="18" y="232" width="10" height="24" rx="2" class="ib-filter"/>
-            <path class="ib-air in" d="M2 244 H18"/>
+            <path class="ib-air in" d="M2 244 H18 M28 244 H42"/>
             <text class="lbl s" x="4" y="270">แผ่นกรอง</text>
           </g>
           <!-- fan -->
@@ -110,10 +111,10 @@
           </g>
           <!-- air probe -->
           <g class="part" data-id="airprobe">
-            <rect class="hit" x="96" y="178" width="72" height="20" rx="5"/>
-            <rect x="110" y="182" width="44" height="12" rx="3" class="ib-sens"/>
-            <circle cx="122" cy="188" r="2.6" class="ib-th"/><circle cx="142" cy="188" r="2.6" class="ib-th"/>
-            <text class="lbl s" x="172" y="191">Air probe A/B</text>
+            <rect class="hit" x="36" y="180" width="110" height="20" rx="5"/>
+            <rect x="40" y="183" width="44" height="12" rx="3" class="ib-sens"/>
+            <circle cx="52" cy="189" r="2.6" class="ib-th"/><circle cx="72" cy="189" r="2.6" class="ib-th"/>
+            <text class="lbl s" x="90" y="193">Air probe A/B</text>
           </g>
           <!-- humidifier -->
           <g class="part" data-id="humid">
@@ -171,7 +172,7 @@
           <!-- overlays used by animations -->
           <g class="ib-hot"><rect x="20" y="34" width="240" height="140" rx="30"/></g>
         </svg>
-        <figcaption>พัดลมดูดอากาศผ่านแผ่นกรองและฮีตเตอร์ใต้พื้นตู้ อากาศอุ่นและชื้นไหลขึ้นตามผนังทั้งสองข้างเป็นม่านอากาศรอบทารก แล้วไหลกลับลงมาใต้พื้นตู้ผ่านกล่องเซนเซอร์</figcaption>
+        <figcaption>อากาศไหลเป็นวงปิด: พัดลมเป่าผ่านฮีตเตอร์และฮิวมิดิไฟเออร์ → ขึ้นทางผนังด้านหนึ่งเข้าห้องทารก → ข้ามด้านบนตู้ → ลงอีกด้านผ่านกล่องเซนเซอร์ air probe → กลับเข้าพัดลมแล้ววนซ้ำ โดยมีอากาศใหม่ส่วนหนึ่งเติมเข้ามาทางแผ่นกรอง</figcaption>
       </figure>
 
       <figure id="fig-blk" style="display:none">

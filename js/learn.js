@@ -11,20 +11,20 @@
       <g class="lp-part" data-p="hood"><rect class="lp-hit" x="8" y="18" width="250" height="132" rx="10"/>
         <path class="ib-hood" d="M14 150 V58 Q14 24 48 24 H218 Q252 24 252 58 V150"/>
         <circle class="ib-port" cx="60" cy="86" r="15"/><circle class="ib-port" cx="206" cy="86" r="15"/></g>
-      <g class="ib-airg">
-        <path class="ib-air" d="M26 150 V58 Q26 46 40 44"/><path class="ib-air" d="M240 150 V58 Q240 46 226 44"/>
-        <path class="ib-air ret" d="M133 52 V124"/></g>
       <rect class="ib-mat" x="32" y="136" width="200" height="10" rx="4"/>
       <g class="ib-baby"><ellipse cx="118" cy="128" rx="30" ry="8"/><circle cx="155" cy="125" r="9"/></g>
       <g class="lp-part" data-p="skin"><rect class="lp-hit" x="112" y="106" width="140" height="28" rx="6"/>
         <path class="ib-probe" d="M124 122 C144 110 190 110 238 126"/><circle class="ib-tip" cx="124" cy="122" r="3.2"/>
         <rect x="236" y="120" width="11" height="13" rx="2" class="ib-jack"/></g>
       <rect class="ib-deck" x="12" y="150" width="246" height="70" rx="6"/>
-      <path class="ib-air low" d="M38 170 H226"/>
-      <g class="lp-part" data-p="airprobe"><rect class="lp-hit" x="92" y="151" width="62" height="17" rx="4"/>
-        <rect x="100" y="154" width="46" height="11" rx="3" class="ib-sens"/><circle cx="112" cy="159.5" r="2.4" class="ib-th"/><circle cx="134" cy="159.5" r="2.4" class="ib-th"/></g>
+      <g class="ib-airg">
+        <path class="ib-air" d="M71 198 H168 Q174 198 174 192 V172 H234"/><path class="ib-air" d="M242 166 V60 Q242 46 228 46"/>
+        <path class="ib-air" d="M220 46 H46"/><path class="ib-air" d="M38 46 Q26 46 26 60 V150"/>
+        <path class="ib-air" d="M26 154 Q26 160 34 160 H53 V173"/></g>
+      <g class="lp-part" data-p="airprobe"><rect class="lp-hit" x="30" y="152" width="50" height="17" rx="4"/>
+        <rect x="34" y="155" width="40" height="10" rx="3" class="ib-sens"/><circle cx="45" cy="160" r="2.3" class="ib-th"/><circle cx="63" cy="160" r="2.3" class="ib-th"/></g>
       <g class="lp-part" data-p="filter"><rect class="lp-hit" x="2" y="190" width="30" height="30" rx="4"/>
-        <rect x="14" y="194" width="9" height="22" rx="2" class="ib-filter"/><path class="ib-air in" d="M0 205 H14"/></g>
+        <rect x="14" y="194" width="9" height="22" rx="2" class="ib-filter"/><path class="ib-air in" d="M0 205 H14 M23 205 H35"/></g>
       <g class="lp-part" data-p="fan"><rect class="lp-hit" x="30" y="170" width="46" height="46" rx="6"/>
         <circle cx="53" cy="193" r="18" class="ib-fanring"/>
         <g class="ib-fan" style="transform-origin:53px 193px"><path d="M53 193 L53 177 Q62 183 53 193 Z M53 193 L69 193 Q63 202 53 193 Z M53 193 L53 209 Q44 203 53 193 Z M53 193 L37 193 Q43 184 53 193 Z"/></g>
