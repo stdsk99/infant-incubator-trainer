@@ -26,12 +26,12 @@ const APPS = {
     name: 'Infusion Pump Repair Trainer',
     crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3 },
     cert: {
-      org1: 'หลักสูตรเทคโนโลยีสุขภาพ คณะวิทยาศาสตร์และเทคโนโลยี',
-      org2: 'มหาวิทยาลัยราชภัฏบ้านสมเด็จเจ้าพระยา',
+      org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      org2: '',
       title: 'การฝึกซ่อมและทดสอบเครื่องควบคุมการให้สารละลาย (Infusion Pump)',
-      subject: 'รายวิชาเครื่องมือแพทย์',
+      subject: 'ของศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
       signer: 'รศ.ดร.ณัฐดนัย สิงห์คลีวรรณ',
-      signerPos: 'อาจารย์ผู้สอนรายวิชาเครื่องมือแพทย์'
+      signerPos: 'ผู้จัดทำสื่อการเรียนรู้'
     },
     ref: 'IPT', tmplKey: 'TEMPLATE_ID', logSheet: 'เกียรติบัตร', sumSheet: 'สรุป',
     folder: 'เกียรติบัตร Infusion Pump', tmplName: 'แม่แบบเกียรติบัตร Infusion Pump Trainer'
@@ -40,12 +40,12 @@ const APPS = {
     name: 'Infant Incubator Repair Trainer',
     crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3 },
     cert: {
-      org1: 'หลักสูตรเทคโนโลยีสุขภาพ คณะวิทยาศาสตร์และเทคโนโลยี',
-      org2: 'มหาวิทยาลัยราชภัฏบ้านสมเด็จเจ้าพระยา',
+      org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      org2: '',
       title: 'การฝึกซ่อมและบำรุงรักษาตู้อบทารก (Infant Incubator)',
-      subject: 'รายวิชาเครื่องมือแพทย์',
+      subject: 'ของศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
       signer: 'รศ.ดร.ณัฐดนัย สิงห์คลีวรรณ',
-      signerPos: 'อาจารย์ผู้สอนรายวิชาเครื่องมือแพทย์'
+      signerPos: 'ผู้จัดทำสื่อการเรียนรู้'
     },
     ref: 'IIT', tmplKey: 'TEMPLATE_ID_incubator', logSheet: 'เกียรติบัตร ตู้อบ', sumSheet: 'สรุป ตู้อบ',
     folder: 'เกียรติบัตร Infant Incubator', tmplName: 'แม่แบบเกียรติบัตร Infant Incubator Trainer'
@@ -186,7 +186,7 @@ function makeTemplate_(app) {
   r1.getFill().setTransparent(); r1.getBorder().setWeight(5).getLineFill().setSolidFill('#0f7a6c');
   const r2 = s.insertShape(SlidesApp.ShapeType.RECTANGLE, 24, 24, W - 48, H - 48);
   r2.getFill().setTransparent(); r2.getBorder().setWeight(1.5).getLineFill().setSolidFill('#b8892b');
-  box(CERT.org1 + '\n' + CERT.org2, 34, 44, 13, false, '#5d6675');
+  box([CERT.org1, CERT.org2].filter(String).join('\n'), 34, 44, 13, false, '#5d6675');
   box('เกียรติบัตร', 80, 46, 34, true, '#0f7a6c');
   box('ขอมอบเกียรติบัตรฉบับนี้ไว้เพื่อแสดงว่า', 128, 22, 13, false, '#5d6675');
   box('{{name}}', 150, 36, 26, true);
