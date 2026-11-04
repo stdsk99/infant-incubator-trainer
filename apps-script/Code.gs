@@ -1,6 +1,7 @@
 /* Google Apps Script สำหรับ Repair Trainer หลายแอป (ใช้ Google Sheet และบัญชีผู้เรียนร่วมกัน)
    แอปที่รองรับ: pump = Infusion Pump Repair Trainer, incubator = Infant Incubator Repair Trainer
-   1) ลงทะเบียน / เข้าสู่ระบบ / รับคะแนน (doPost)
+   1) ลงทะเบียน / เข้าสู่ระบบ / รับคะแนน / ลงทะเบียนเรียนวิชา / ตรวจสอบเกียรติบัตร (doPost)
+      ใช้ร่วมกับเว็บหลัก ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์ (stdsk99/medtechcenter)
    2) สรุปผลผ่านเกณฑ์ และออกเกียรติบัตรทางการเป็น PDF แยกตามแอป (เมนู "เกียรติบัตร" ใน Google Sheets)
 
    วิธีอัปเดตจากเวอร์ชันเดิม (ใช้กับ Sheet เดิมได้เลย ข้อมูลเดิมไม่หาย)
@@ -15,6 +16,8 @@ const USER_SHEET = 'users';
 const HEAD = ['เวลา', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'กลุ่ม', 'โมดูล', 'รายการ', 'คะแนน', 'เต็ม', 'ร้อยละ', 'รายละเอียด', 'key', 'ประเภทผู้เรียน', 'หน่วยงาน', 'แอป'];
 const UHEAD = ['ลงทะเบียนเมื่อ', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'ประเภท', 'กลุ่ม', 'หน่วยงาน', 'ตำแหน่ง', 'pinHash (ลบเพื่อให้ตั้ง PIN ใหม่)', 'ยินยอม PDPA', 'เข้าสู่ระบบล่าสุด'];
 const DEFAULT_APP = 'pump';
+const ENROLL_SHEET = 'enrollments';
+const EHEAD = ['ลงทะเบียนเรียนเมื่อ', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'แอป', 'ช่องทาง'];
 
 /* ตั้งค่าแต่ละแอป
    crit  = เกณฑ์ผ่าน (ต้องตรงกับ criteria ใน data/config.js ของแอปนั้น)
@@ -52,6 +55,7 @@ const APPS = {
   }
 };
 const appOf_ = a => (APPS[String(a || '').trim()] ? String(a).trim() : DEFAULT_APP);
+const isApp_ = a => !!APPS[String(a || '').trim()];
 
 /* ---------------- ช่วยเหลือ ---------------- */
 function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
@@ -81,6 +85,7 @@ function doPost(e) {
   let d;
   try { d = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, err: 'bad' }); }
   if (d.token !== TOKEN) return out_({ ok: false, err: 'token' });
+  if (d.action === 'verify') return out_(verify_(String(d.ref || '').trim()));   // ไม่ต้องเข้าสู่ระบบ
   const sid = String(d.sid || '').trim();
   if (!sid) return out_({ ok: false, err: 'nouser' });
   const lock = LockService.getScriptLock();
@@ -88,7 +93,10 @@ function doPost(e) {
   try {
     if (d.action === 'register') return out_(register_(sid, d));
     if (d.action === 'login') return out_(login_(sid, d));
-    return out_(score_(sid, d));
+    if (d.action === 'portal') return out_(portal_(sid, d));
+    if (d.action === 'enroll') return out_(enroll_(sid, d));
+    if (d.action === 'score' || !d.action) return out_(score_(sid, d));
+    return out_({ ok: false, err: 'bad' });
   } finally { lock.releaseLock(); }
 }
 
@@ -110,6 +118,7 @@ function login_(sid, d) {
   else if (u.pin !== d.pin) return { ok: false, err: 'badpin' };
   u.sh.getRange(u.row, 10).setValue(new Date());
   const app = appOf_(d.app), hist = [];
+  if (!enrolledApps_(sid).includes(app)) addEnroll_(sid, u.name, app, 'แอป');   // เข้าแอปตรง = ลงทะเบียนให้อัตโนมัติ
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (sh && sh.getLastRow() > 1) {
     const w = Math.max(14, sh.getLastColumn());
@@ -135,6 +144,108 @@ function score_(sid, d) {
   return { ok: true };
 }
 
+/* ---------------- เว็บหลัก: ลงทะเบียนเรียน / ภาพรวม / ตรวจสอบเกียรติบัตร ---------------- */
+function checkUser_(sid, d) {
+  const u = findUser_(sid);
+  if (!u) return { err: 'nouser' };
+  if (!u.pin) { u.sh.getRange(u.row, 8).setValue(d.pin); return { u, reset: true }; }
+  if (u.pin !== d.pin) return { err: 'badpin' };
+  return { u };
+}
+function enrolledApps_(sid) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ENROLL_SHEET);
+  if (!sh || sh.getLastRow() < 2) return [];
+  const out = [];
+  sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(sid).matchEntireCell(true).findAll().forEach(c => {
+    const a = String(sh.getRange(c.getRow(), 4).getValue());
+    if (isApp_(a) && out.indexOf(a) < 0) out.push(a);
+  });
+  return out;
+}
+function addEnroll_(sid, name, app, via) {
+  const sh = sheet_(ENROLL_SHEET, EHEAD);
+  sh.appendRow([new Date(), sid, name || '', app, via || 'เว็บหลัก']);
+  sh.getRange(sh.getLastRow(), 2).setNumberFormat('@').setValue(sid);
+}
+
+/* ลงทะเบียนเรียนวิชา (1 วิชา = 1 แอป) */
+function enroll_(sid, d) {
+  const r = checkUser_(sid, d); if (r.err) return { ok: false, err: r.err };
+  if (!isApp_(d.app)) return { ok: false, err: 'bad' };
+  const list = enrolledApps_(sid);
+  if (list.indexOf(d.app) < 0) { addEnroll_(sid, r.u.name, d.app, 'เว็บหลัก'); list.push(d.app); }
+  return { ok: true, enrolled: list };
+}
+
+/* ความคืบหน้าทุกแอปของผู้เรียนคนเดียว (ตรรกะเดียวกับ summarize_) */
+function progressOf_(sid) {
+  const P = {};
+  Object.keys(APPS).forEach(a => P[a] = { learn: {}, exam: {}, order: {}, quiz: 0, any: false });
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (sh && sh.getLastRow() > 1) {
+    const cols = Math.min(14, Math.max(13, sh.getLastColumn()));
+    sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(sid).matchEntireCell(true).findAll().forEach(c => {
+      const r = sh.getRange(c.getRow(), 1, 1, cols).getValues()[0];
+      const p = P[appOf_(r[13])], key = String(r[10] || ''), sc = Number(r[6]), mx = Number(r[7]);
+      p.any = true;
+      if (key.indexOf('learn:') === 0) p.learn[key] = 1;
+      if (key.indexOf('exam:') === 0) p.exam[key] = Math.max(p.exam[key] || 0, sc);
+      if (key.indexOf('order:') === 0) p.order[key] = 1;
+      if (key === 'quiz' && mx) p.quiz = Math.max(p.quiz, Math.round(sc / mx * 100));
+    });
+  }
+  const out = {};
+  Object.keys(P).forEach(a => {
+    const p = P[a], C = APPS[a].crit, ev = Object.keys(p.exam).map(k => p.exam[k]);
+    const avg = ev.length ? Math.round(ev.reduce((x, y) => x + y, 0) / ev.length) : 0;
+    const o = { learn: Object.keys(p.learn).length, exam: ev.length, avg, quiz: p.quiz, order: Object.keys(p.order).length, crit: C, started: p.any };
+    o.pass = o.learn >= C.learnCases && o.exam >= C.examCases && o.avg >= C.examAvg && o.quiz >= C.quizPct && o.order >= C.orderTasks;
+    const part = [Math.min(1, o.learn / C.learnCases), Math.min(1, o.exam / C.examCases) * (o.avg >= C.examAvg || !o.exam ? 1 : 0.8),
+      Math.min(1, o.quiz / C.quizPct), Math.min(1, o.order / C.orderTasks)];
+    o.pct = o.pass ? 100 : Math.round(part.reduce((x, y) => x + y, 0) / part.length * 100);
+    out[a] = o;
+  });
+  return out;
+}
+
+/* เกียรติบัตรทางการที่อาจารย์ออกให้แล้ว */
+function certsOf_(sid) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), out = [];
+  Object.keys(APPS).forEach(a => {
+    const sh = ss.getSheetByName(APPS[a].logSheet);
+    if (!sh || sh.getLastRow() < 2) return;
+    sh.getRange(2, 1, sh.getLastRow() - 1, 5).getValues().forEach(r => {
+      if (String(r[0]).trim() === sid) out.push({ app: a, ref: String(r[2]), date: new Date(r[3]).toISOString(), url: String(r[4] || '') });
+    });
+  });
+  return out;
+}
+
+/* ภาพรวมสำหรับเว็บหลัก: โปรไฟล์ วิชาที่ลงทะเบียน ความคืบหน้า เกียรติบัตร */
+function portal_(sid, d) {
+  const r = checkUser_(sid, d); if (r.err) return { ok: false, err: r.err };
+  r.u.sh.getRange(r.u.row, 10).setValue(new Date());
+  const enrolled = enrolledApps_(sid), progress = progressOf_(sid);
+  Object.keys(progress).forEach(a => { if (progress[a].started && enrolled.indexOf(a) < 0) { addEnroll_(sid, r.u.name, a, 'เรียนในแอปก่อนมีเว็บหลัก'); enrolled.push(a); } });
+  return { ok: true, reset: !!r.reset, profile: profileOf_(r.u), enrolled, progress, certs: certsOf_(sid) };
+}
+
+/* ตรวจสอบเลขที่เกียรติบัตร (เปิดให้ทุกคน คืนค่าเฉพาะข้อมูลที่พิมพ์อยู่บนเกียรติบัตร) */
+function verify_(ref) {
+  if (!/^[A-Za-z]{2,5}-\d{4}-\d{1,5}$/.test(ref)) return { ok: false, err: 'format' };
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  for (const a of Object.keys(APPS)) {
+    const sh = ss.getSheetByName(APPS[a].logSheet);
+    if (!sh || sh.getLastRow() < 2) continue;
+    const c = sh.getRange(2, 3, sh.getLastRow() - 1, 1).createTextFinder(ref).matchEntireCell(true).matchCase(false).findNext();
+    if (c) {
+      const r = sh.getRange(c.getRow(), 1, 1, 4).getValues()[0];
+      return { ok: true, ref: String(r[2]), name: String(r[1]), title: APPS[a].cert.title, date: new Date(r[3]).toISOString() };
+    }
+  }
+  return { ok: false, err: 'notfound' };
+}
+
 /* ---------------- ทดสอบจากหน้า Apps Script (กด Run ได้) ---------------- */
 function testPost() {
   const call = o => doPost({ postData: { contents: JSON.stringify(Object.assign({ token: TOKEN, sid: 'test0000', pin: 'testhash' }, o)) } }).getContent();
@@ -142,7 +253,10 @@ function testPost() {
   Logger.log('login pump: ' + call({ action: 'login' }));
   Logger.log('login incubator: ' + call({ action: 'login', app: 'incubator' }));
   Logger.log('score pump: ' + call({ mod: 'ทดสอบ', item: 'ทดสอบการเชื่อมต่อ', score: 1, max: 1, key: 'test' }));
-  Logger.log('score incubator: ' + call({ mod: 'ทดสอบ', item: 'ทดสอบการเชื่อมต่อ', score: 1, max: 1, key: 'test', app: 'incubator' }));
+  Logger.log('score incubator: ' + call({ action: 'score', mod: 'ทดสอบ', item: 'ทดสอบการเชื่อมต่อ', score: 1, max: 1, key: 'test', app: 'incubator' }));
+  Logger.log('enroll: ' + call({ action: 'enroll', app: 'incubator' }));
+  Logger.log('portal: ' + call({ action: 'portal' }));
+  Logger.log('verify: ' + call({ action: 'verify', ref: 'IIT-2569-001' }));
 }
 
 /* ---------------- เมนูใน Google Sheets ---------------- */
