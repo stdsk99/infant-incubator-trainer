@@ -20,14 +20,14 @@ const ENROLL_SHEET = 'enrollments';
 const EHEAD = ['ลงทะเบียนเรียนเมื่อ', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'แอป', 'ช่องทาง'];
 
 /* ตั้งค่าแต่ละแอป
-   crit  = เกณฑ์ผ่าน (ต้องตรงกับ criteria ใน data/config.js ของแอปนั้น)
+   crit  = เกณฑ์ผ่าน (ต้องตรงกับ criteria ใน data/config.js ของแอปนั้น) clinSimPct ใส่เฉพาะแอปที่มีเครื่องจำลองทางคลินิก
    cert  = ข้อความบนเกียรติบัตร
    ref   = คำนำหน้าเลขที่เกียรติบัตร
    tmplKey / logSheet / sumSheet / folder = ชื่อที่ใช้เก็บแม่แบบ บันทึก และไฟล์ PDF ของแอปนั้น */
 const APPS = {
   pump: {
     name: 'Infusion Pump Repair Trainer',
-    crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3 },
+    crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3, clinSimPct: 80 },   // clinSimPct = โมดูล 7 เครื่องจำลองการตั้งค่าทางคลินิก
     cert: {
       org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
       org2: '',
@@ -180,7 +180,7 @@ function enroll_(sid, d) {
 /* ความคืบหน้าทุกแอปของผู้เรียนคนเดียว (ตรรกะเดียวกับ summarize_) */
 function progressOf_(sid) {
   const P = {};
-  Object.keys(APPS).forEach(a => P[a] = { learn: {}, exam: {}, order: {}, quiz: 0, any: false });
+  Object.keys(APPS).forEach(a => P[a] = { learn: {}, exam: {}, order: {}, quiz: 0, clin: 0, any: false });
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (sh && sh.getLastRow() > 1) {
     const cols = Math.min(14, Math.max(13, sh.getLastColumn()));
@@ -192,16 +192,19 @@ function progressOf_(sid) {
       if (key.indexOf('exam:') === 0) p.exam[key] = Math.max(p.exam[key] || 0, sc);
       if (key.indexOf('order:') === 0) p.order[key] = 1;
       if (key === 'quiz' && mx) p.quiz = Math.max(p.quiz, Math.round(sc / mx * 100));
+      if (key === 'clin:sim' && mx) p.clin = Math.max(p.clin, Math.round(sc / mx * 100));
     });
   }
   const out = {};
   Object.keys(P).forEach(a => {
     const p = P[a], C = APPS[a].crit, ev = Object.keys(p.exam).map(k => p.exam[k]);
     const avg = ev.length ? Math.round(ev.reduce((x, y) => x + y, 0) / ev.length) : 0;
-    const o = { learn: Object.keys(p.learn).length, exam: ev.length, avg, quiz: p.quiz, order: Object.keys(p.order).length, crit: C, started: p.any };
-    o.pass = o.learn >= C.learnCases && o.exam >= C.examCases && o.avg >= C.examAvg && o.quiz >= C.quizPct && o.order >= C.orderTasks;
+    const o = { learn: Object.keys(p.learn).length, exam: ev.length, avg, quiz: p.quiz, order: Object.keys(p.order).length, clin: p.clin, crit: C, started: p.any };
+    o.pass = o.learn >= C.learnCases && o.exam >= C.examCases && o.avg >= C.examAvg && o.quiz >= C.quizPct && o.order >= C.orderTasks
+      && (!C.clinSimPct || o.clin >= C.clinSimPct);
     const part = [Math.min(1, o.learn / C.learnCases), Math.min(1, o.exam / C.examCases) * (o.avg >= C.examAvg || !o.exam ? 1 : 0.8),
       Math.min(1, o.quiz / C.quizPct), Math.min(1, o.order / C.orderTasks)];
+    if (C.clinSimPct) part.push(Math.min(1, o.clin / C.clinSimPct));
     o.pct = o.pass ? 100 : Math.round(part.reduce((x, y) => x + y, 0) / part.length * 100);
     out[a] = o;
   });
@@ -331,19 +334,21 @@ function summarize_(app) {
   rows.forEach(r => {
     if (appOf_(r[13]) !== app) return;
     const sid = String(r[1]).trim(); if (!sid || sid === 'test0000') return;
-    const p = P[sid] = P[sid] || { sid, name: r[2], sec: r[3], type: r[11], org: r[12], learn: {}, exam: {}, order: {}, quiz: 0 };
+    const p = P[sid] = P[sid] || { sid, name: r[2], sec: r[3], type: r[11], org: r[12], learn: {}, exam: {}, order: {}, quiz: 0, clin: 0 };
     const key = String(r[10] || ''), sc = Number(r[6]), mx = Number(r[7]);
     if (key.indexOf('learn:') === 0) p.learn[key] = 1;
     if (key.indexOf('exam:') === 0) p.exam[key] = Math.max(p.exam[key] || 0, sc);
     if (key.indexOf('order:') === 0) p.order[key] = 1;
     if (key === 'quiz' && mx) p.quiz = Math.max(p.quiz, Math.round(sc / mx * 100));
+    if (key === 'clin:sim' && mx) p.clin = Math.max(p.clin, Math.round(sc / mx * 100));
   });
   return Object.keys(P).map(k => {
     const p = P[k], u = users[k], ev = Object.keys(p.exam).map(x => p.exam[x]);
     if (u) { p.name = u.name || p.name; p.type = u.type; p.sec = u.sec; p.org = u.org; }
     p.nLearn = Object.keys(p.learn).length; p.nExam = ev.length; p.nOrder = Object.keys(p.order).length;
     p.avg = ev.length ? Math.round(ev.reduce((a, b) => a + b, 0) / ev.length) : 0;
-    p.pass = p.nLearn >= CRIT.learnCases && p.nExam >= CRIT.examCases && p.avg >= CRIT.examAvg && p.quiz >= CRIT.quizPct && p.nOrder >= CRIT.orderTasks;
+    p.pass = p.nLearn >= CRIT.learnCases && p.nExam >= CRIT.examCases && p.avg >= CRIT.examAvg && p.quiz >= CRIT.quizPct && p.nOrder >= CRIT.orderTasks
+      && (!CRIT.clinSimPct || p.clin >= CRIT.clinSimPct);
     return p;
   }).sort((a, b) => a.sid.localeCompare(b.sid));
 }
@@ -353,8 +358,9 @@ function evaluate_(app) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName(A.sumSheet) || ss.insertSheet(A.sumSheet);
   sh.clear();
-  sh.appendRow(['รหัสผู้ใช้', 'ชื่อ-สกุล', 'ประเภท', 'กลุ่ม / หน่วยงาน', 'เรียนรู้ (เคส)', 'สอบ (เคส)', 'สอบเฉลี่ย', 'แบบทดสอบ %', 'ลำดับขั้นตอน (งาน)', 'ผลเกณฑ์']);
-  list.forEach(p => sh.appendRow([p.sid, p.name, p.type || 'นักศึกษา', p.org || p.sec, p.nLearn, p.nExam, p.avg, p.quiz, p.nOrder, p.pass ? 'ผ่าน' : 'ยังไม่ผ่าน']));
+  const clin = !!A.crit.clinSimPct;
+  sh.appendRow(['รหัสผู้ใช้', 'ชื่อ-สกุล', 'ประเภท', 'กลุ่ม / หน่วยงาน', 'เรียนรู้ (เคส)', 'สอบ (เคส)', 'สอบเฉลี่ย', 'แบบทดสอบ %', 'ลำดับขั้นตอน (งาน)'].concat(clin ? ['ตั้งค่าทางคลินิก %'] : []).concat(['ผลเกณฑ์']));
+  list.forEach(p => sh.appendRow([p.sid, p.name, p.type || 'นักศึกษา', p.org || p.sec, p.nLearn, p.nExam, p.avg, p.quiz, p.nOrder].concat(clin ? [p.clin] : []).concat([p.pass ? 'ผ่าน' : 'ยังไม่ผ่าน'])));
   sh.setFrozenRows(1);
   SpreadsheetApp.getUi().alert(A.name + '\nสรุปแล้ว ' + list.length + ' คน ผ่านเกณฑ์ ' + list.filter(p => p.pass).length + ' คน (ดูแท็บ "' + A.sumSheet + '")');
 }
@@ -391,7 +397,7 @@ function createCertificates_(app) {
     pres.replaceAllText('{{sid}}', p.sid);
     pres.replaceAllText('{{date}}', thaiDate_(now));
     pres.replaceAllText('{{ref}}', ref);
-    pres.replaceAllText('{{scores}}', 'โหมดเรียนรู้ ' + p.nLearn + ' เคส · โหมดสอบเฉลี่ย ' + p.avg + ' คะแนน · แบบทดสอบ ' + p.quiz + '% · ลำดับขั้นตอน ' + p.nOrder + ' งาน');
+    pres.replaceAllText('{{scores}}', 'โหมดเรียนรู้ ' + p.nLearn + ' เคส · โหมดสอบเฉลี่ย ' + p.avg + ' คะแนน · แบบทดสอบ ' + p.quiz + '% · ลำดับขั้นตอน ' + p.nOrder + ' งาน' + (A.crit.clinSimPct ? ' · ตั้งค่าทางคลินิก ' + p.clin + '%' : ''));
     pres.saveAndClose();
     const pdf = folder.createFile(copy.getAs('application/pdf')).setName('เกียรติบัตร-' + p.sid + '-' + p.name + '.pdf');
     copy.setTrashed(true);
