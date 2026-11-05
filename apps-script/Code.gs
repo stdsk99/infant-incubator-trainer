@@ -2,7 +2,7 @@
    แอปที่รองรับ: pump = Infusion Pump Repair Trainer, incubator = Infant Incubator Repair Trainer
    1) สมัคร / เข้าสู่ระบบ / เปลี่ยนรหัสผ่าน ทำที่เว็บหลัก (stdsk99/medtechcenter) ที่เดียว
       แอปฝึกซ่อมรับ "บัตรผ่าน" (session token) จากเว็บหลัก แล้วใช้ส่งคะแนน
-   2) เมนู "ผู้ใช้" ใน Google Sheets: ดูข้อมูล รีเซ็ตรหัสผ่าน ระงับบัญชี ยกเลิกการลงทะเบียน ลบผู้ใช้
+   2) เมนู "ผู้ใช้" ใน Google Sheets: ดูข้อมูล รีเซ็ตรหัสผ่าน ระงับบัญชี ยกเลิกการลงทะเบียน (ไม่มีการลบผู้ใช้)
    3) เมนู "เกียรติบัตร": สรุปผลผ่านเกณฑ์ และออกเกียรติบัตรทางการเป็น PDF แยกตามแอป
 
    ความปลอดภัย
@@ -378,8 +378,6 @@ function onOpen() {
     .addItem('ระงับ / เปิดใช้บัญชี', 'adminToggleSuspend')
     .addItem('ยกเลิกการลงทะเบียนวิชา', 'adminUnenroll')
     .addSeparator()
-    .addItem('ลบผู้ใช้และข้อมูลทั้งหมด', 'adminDeleteUser')
-    .addSeparator()
     .addItem('วิธีใช้เมนูนี้', 'adminHelp')
     .addToUi();
   ui.createMenu('เกียรติบัตร')
@@ -412,7 +410,7 @@ function adminHelp() {
     + '• ห้ามแก้คอลัมน์ "รหัสผู้ใช้" และ "รหัสผ่าน" ด้วยมือ\n'
     + '• ผู้เรียนลืมรหัสผ่าน: ใช้ "รีเซ็ตรหัสผ่าน" แล้วแจ้งรหัสชั่วคราวให้ผู้เรียน ผู้เรียนจะต้องตั้งรหัสใหม่ตอนเข้าสู่ระบบ\n'
     + '• บัญชีถูกล็อกเพราะใส่รหัสผิด 5 ครั้ง: รอ 15 นาที หรือใช้ "รีเซ็ตรหัสผ่าน" เพื่อปลดล็อกทันที\n'
-    + '• ผู้เรียนขอลบข้อมูลตาม PDPA: ใช้ "ลบผู้ใช้และข้อมูลทั้งหมด"');
+    + '• ไม่ต้องการให้ใช้งานแล้ว: ใช้ "ระงับ / เปิดใช้บัญชี" (ระบบไม่มีคำสั่งลบผู้ใช้)');
 }
 
 function adminInfo() {
@@ -476,7 +474,7 @@ function adminUnenroll() {
   ui.alert('ยกเลิกการลงทะเบียน ' + APPS[app].name + ' ของ ' + who_(u) + ' แล้ว');
 }
 
-/* ลบแถวทุกแถวที่คอลัมน์ col ตรงกับ sid (ลบจากล่างขึ้นบน) */
+/* ลบแถวทุกแถวที่คอลัมน์ col ตรงกับ sid (ลบจากล่างขึ้นบน) ใช้เฉพาะลบผู้ใช้ทดสอบ test0000 ใน testPost */
 function deleteRowsOf_(sh, col, sid) {
   if (!sh || sh.getLastRow() < 2) return 0;
   const rows = sh.getRange(2, col, sh.getLastRow() - 1, 1).createTextFinder(sid).matchEntireCell(true).findAll().map(c => c.getRow()).sort((a, b) => b - a);
@@ -484,6 +482,7 @@ function deleteRowsOf_(sh, col, sid) {
   return rows.length;
 }
 function deleteUserData_(sid, withCerts) {
+  if (sid !== 'test0000') throw new Error('ลบได้เฉพาะผู้ใช้ทดสอบ');
   const ss = SpreadsheetApp.getActiveSpreadsheet(), n = {};
   n.scores = deleteRowsOf_(ss.getSheetByName(SHEET_NAME), 2, sid);
   n.enroll = deleteRowsOf_(ss.getSheetByName(ENROLL_SHEET), 2, sid);
@@ -492,17 +491,6 @@ function deleteUserData_(sid, withCerts) {
   n.user = deleteRowsOf_(ss.getSheetByName(USER_SHEET), 2, sid);
   return n;
 }
-function adminDeleteUser() {
-  const u = selUser_(); if (!u) return;
-  const ui = SpreadsheetApp.getUi();
-  if (ui.alert('ลบ ' + who_(u) + ' ถาวร?\n\nจะลบบัญชี คะแนนทั้งหมด และการลงทะเบียนเรียน กู้คืนไม่ได้', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
-  const hasCert = certsOf_(u.sid).length > 0;
-  const withCerts = hasCert && ui.alert('ผู้ใช้นี้มีเกียรติบัตรทางการแล้ว\n\nลบประวัติเกียรติบัตรด้วยไหม?\n(ถ้าลบ จะตรวจสอบเลขที่เกียรติบัตรบนเว็บไม่ได้อีก ไฟล์ PDF ใน Google Drive ต้องลบเอง)', ui.ButtonSet.YES_NO) === ui.Button.YES;
-  const n = deleteUserData_(u.sid, withCerts);
-  ui.alert('ลบแล้ว: บัญชี ' + n.user + ' · คะแนน ' + n.scores + ' แถว · การลงทะเบียน ' + n.enroll + ' แถว' + (withCerts ? ' · ประวัติเกียรติบัตร ' + n.certs + ' แถว' : '')
-    + '\n\nแท็บ "สรุป" จะอัปเดตเมื่อกด "สรุปผลผ่านเกณฑ์" ครั้งถัดไป');
-}
-
 /* ชื่อฟังก์ชันเดิมของ pump คงไว้ เพื่อให้ปุ่มหรือทริกเกอร์ที่ผูกไว้ยังใช้ได้ */
 function makeTemplate() { makeTemplate_('pump'); }
 function evaluate() { evaluate_('pump'); }
