@@ -1,0 +1,34 @@
+/* ===== วิชาคลินิก (ใช้ร่วมกับ ../css/style.css และ ../css/incubator.css) ===== */
+.trial{background:var(--mid-soft);border-left:4px solid var(--mid);border-radius:10px;padding:10px 14px;font-size:14px;margin:10px 0}
+.trial b{color:var(--mid);margin-right:4px}
+.box{border-radius:12px;padding:10px 14px;margin:12px 0;font-size:15px}
+.box b{display:inline-block;font-size:12px;letter-spacing:.04em;border-radius:999px;padding:1px 10px;margin-bottom:4px}
+.box p{margin:2px 0 0}
+.box.basic{background:var(--low-soft)}.box.basic b{background:var(--low);color:#fff}
+.box.field{background:var(--accent-soft)}.box.field b{background:var(--accent);color:#fff}
+.tblwrap{overflow-x:auto;margin:10px 0}
+.ltbl{border-collapse:collapse;width:100%;font-size:14px;min-width:420px}
+.ltbl th,.ltbl td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+.ltbl th{background:var(--bg);font-weight:600}
+.srcs{border-top:1px solid var(--line);margin-top:16px;padding-top:10px;font-size:13px}
+.srcs ul{margin:4px 0 0;padding-left:18px}.srcs li{margin:2px 0}
+.unit{background:var(--low-soft);border-radius:8px;padding:8px 10px;font-size:14px;margin-top:8px}
+/* จอตู้ + ทารกจำลอง */
+.cmon{display:grid;gap:10px}
+.cmon .itiles{grid-template-columns:repeat(4,1fr)}
+@media (max-width:520px){ .cmon .itiles{grid-template-columns:repeat(2,1fr)} }
+.imsg.alm{color:#ff8a7a;font-weight:600}
+.baby{display:flex;align-items:center;gap:12px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 14px}
+.baby svg{width:90px;flex:none}.baby svg *{fill:#c9d3da}
+.baby small{display:block;color:var(--muted);font-size:12px}.baby b{font-size:22px}
+.baby.ok{border-color:var(--accent)}.baby.ok svg *{fill:#f2c9a5}
+.baby.cold{border-color:var(--low)}.baby.cold svg *{fill:#a9c8ea}.baby.cold b{color:var(--low)}
+.baby.hot{border-color:var(--warn)}.baby.hot svg *{fill:#f19a8c}.baby.hot b{color:var(--warn)}
+.trend{width:100%;max-width:620px;height:auto;display:block;margin:12px 0 4px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.trend .band{fill:var(--accent-soft)}
+.trend .grid{stroke:var(--line);stroke-width:1}
+.trend .ax{font-size:11px;fill:var(--muted)}
+.trend .good{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:6 5}
+.trend .mine{fill:none;stroke:var(--ink);stroke-width:2.5}
+.trend .mine-pt{fill:var(--ink)}
+a.btn{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;background:var(--card)}

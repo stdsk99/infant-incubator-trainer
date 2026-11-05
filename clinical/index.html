@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>การใช้ตู้อบทารกอย่างปลอดภัย · Infant Incubator Clinical Use</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/incubator.css">
+<link rel="stylesheet" href="css/clin.css">
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="logo">IC</div>
+    <div class="brand">การใช้ตู้อบทารกอย่างปลอดภัย<small>วิชาคลินิก สำหรับพยาบาลและนักศึกษาพยาบาล · ฉบับทดลอง</small></div>
+  </div>
+  <nav id="nav">
+    <a href="#home" data-v="home">หน้าแรก</a>
+    <a href="#lessons" data-v="lessons">บทเรียน</a>
+    <a href="#sim" data-v="sim">เครื่องจำลอง</a>
+    <a href="#quiz" data-v="quiz">แบบทดสอบ</a>
+    <a href="#scores" data-v="scores">ผลของฉัน</a>
+  </nav>
+</header>
+
+<main>
+<section class="view" id="v-home">
+  <h1>การใช้ตู้อบทารกอย่างปลอดภัย</h1>
+  <p class="muted">เรียนการใช้ตู้อบทารกแบบลมร้อนหมุนเวียน (อ้างอิงตระกูล GE Giraffe Incubator) ตั้งแต่การรักษาอุณหภูมิกายของทารก การเตรียมตู้ การตั้งค่า ความชื้น ออกซิเจน การดูแลประจำวัน alarm จนถึงการทำความสะอาด แล้วฝึกตัดสินใจในเครื่องจำลอง 7 สถานการณ์</p>
+  <div class="trial"><b>ฉบับทดลอง</b> เนื้อหายังไม่ผ่านการตรวจโดยผู้เชี่ยวชาญทางคลินิก ใช้เป็นสื่อเสริม ไม่ใช่แทนการสอนของพยาบาลพี่เลี้ยงหรืออาจารย์พยาบาล ค่าตัวเลขทางคลินิกเป็นตัวอย่างจากแนวทางต่างประเทศ ค่าที่ใช้จริงต้องเป็นไปตามคำสั่งแพทย์และแนวทางของหน่วยงาน <span id="report"></span></div>
+  <div id="home-prog"></div>
+  <div class="cards">
+    <a class="card" href="#lessons"><div class="num">ส่วนที่ 1</div><h3>บทเรียน 8 บท</h3><p>อุณหภูมิกายทารก · เตรียมตู้ · การตั้งค่า · ความชื้น · ออกซิเจน · การดูแลประจำวัน · Alarm · ทำความสะอาด พร้อมแหล่งอ้างอิงทุกบท</p></a>
+    <a class="card" href="#sim"><div class="num">ส่วนที่ 2</div><h3>เครื่องจำลอง</h3><p>7 สถานการณ์ เช่น รับทารกคลอดก่อนกำหนด หัววัดหลุด ส่องไฟ ไฟดับ ดูจอตู้และทารกจำลอง ตัดสินใจทีละขั้น แล้วดูกราฟอุณหภูมิทารก</p></a>
+    <a class="card" href="#quiz"><div class="num">ส่วนที่ 3</div><h3>แบบทดสอบ</h3><p>สุ่ม 20 ข้อจากคลัง 40 ข้อ ครอบคลุมทั้ง 8 บท ส่งแล้วเห็นคะแนนแยกหมวดพร้อมเฉลย</p></a>
+  </div>
+  <div class="note"><b>เกณฑ์ผ่าน:</b> อ่านบทเรียนครบ 8 บท · เครื่องจำลองอย่างน้อย 80% · แบบทดสอบอย่างน้อย 80% ผ่านครบแล้วออกใบรับรองได้ที่เมนู "ผลของฉัน" ใบรับรองนี้ไม่ใช่หน่วยคะแนนการศึกษาต่อเนื่อง (CNEU) ของสภาการพยาบาล</div>
+</section>
+<section class="view" id="v-lessons"><div id="lessons"></div></section>
+<section class="view" id="v-sim"><div id="sim"></div></section>
+<section class="view" id="v-quiz"><div id="quiz"></div></section>
+<section class="view" id="v-scores"><div id="scores"></div></section>
+</main>
+<footer class="foot"><p class="muted small">สื่อการเรียนรู้ของศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์ · เนื้อหาเรียบเรียงใหม่จากแนวทางที่อ้างอิงในแต่ละบท · GE และ Giraffe เป็นเครื่องหมายการค้าของเจ้าของ แอปนี้ไม่ได้เกี่ยวข้องกับผู้ผลิต</p></footer>
+
+<script src="data/config.js"></script>
+<script src="data/lessons.js"></script>
+<script src="data/sim.js"></script>
+<script src="data/quiz.js"></script>
+<script src="../js/cert.js"></script>
+<script src="../js/score.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/quiz.js"></script>
+<script src="js/clin.js"></script>
+</body>
+</html>

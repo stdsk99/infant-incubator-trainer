@@ -7,6 +7,7 @@
 
   /* คำนวณความคืบหน้าจากประวัติคะแนน */
   function progress(hist){
+    if(window.CertProgress) return window.CertProgress(hist, CR);   // แอปที่มีเกณฑ์แบบอื่น (เช่น วิชาคลินิก)
     const learn=new Set(), exam={}, order=new Set(); let quiz=0, clin=0;
     hist.forEach(h=>{ const k=h.key||"";
       if(k.startsWith("learn:")) learn.add(k);
@@ -50,7 +51,7 @@
     lines.forEach((l,i)=>t(l,660+i*50,34,500,ink));
     let y=660+lines.length*50+6;
     t(`${CE.subject||""} ตามเกณฑ์ที่กำหนดครบทุกข้อ`,y,30,400,ink); y+=100;
-    t(`โหมดเรียนรู้ ${pr.learn} เคส  ·  โหมดสอบเฉลี่ย ${pr.avg} คะแนน  ·  แบบทดสอบ ${pr.quiz}%  ·  ลำดับขั้นตอน ${pr.order} งาน${CR.clinSimPct?`  ·  การใช้งานสำหรับช่าง ${pr.clin}%`:""}`,y,CR.clinSimPct?21:24,400,mut); y+=110;
+    t(pr.line || `โหมดเรียนรู้ ${pr.learn} เคส  ·  โหมดสอบเฉลี่ย ${pr.avg} คะแนน  ·  แบบทดสอบ ${pr.quiz}%  ·  ลำดับขั้นตอน ${pr.order} งาน${CR.clinSimPct?`  ·  การใช้งานสำหรับช่าง ${pr.clin}%`:""}`,y,CR.clinSimPct?21:24,400,mut); y+=110;
     const d=new Date(); t(`ให้ไว้ ณ วันที่ ${thDate(d)}`,y,34,500,ink);
     const rid=p.type==="gp"?("G"+[...p.sid].reduce((h,c)=>(h*31+c.charCodeAt(0))>>>0,7).toString(36).toUpperCase().slice(0,6)):p.sid;
     const ref=`${CE.ref||"IIT"}-${rid}-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;

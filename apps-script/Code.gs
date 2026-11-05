@@ -1,5 +1,6 @@
 /* Google Apps Script สำหรับศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์ (ใช้ Google Sheet และบัญชีผู้เรียนร่วมกันทุกแอป)
-   แอปที่รองรับ: pump = Infusion Pump Repair Trainer, incubator = Infant Incubator Repair Trainer
+   แอปที่รองรับ: pump = Infusion Pump Repair Trainer, incubator = Infant Incubator Repair Trainer,
+   incubator-clin = วิชาคลินิก การใช้ตู้อบทารกอย่างปลอดภัย
    1) สมัคร / เข้าสู่ระบบ / เปลี่ยนรหัสผ่าน ทำที่เว็บหลัก (stdsk99/medtechcenter) ที่เดียว
       แอปฝึกซ่อมรับ "บัตรผ่าน" (session token) จากเว็บหลัก แล้วใช้ส่งคะแนน
    2) เมนู "ผู้ใช้" ใน Google Sheets: ดูข้อมูล รีเซ็ตรหัสผ่าน ระงับบัญชี ยกเลิกการลงทะเบียน (ไม่มีการลบผู้ใช้)
@@ -35,7 +36,7 @@ const MAX_FAILS = 5, LOCK_MIN = 15, TOKEN_DAYS = 30, HASH_ROUNDS = 300;
    tmplKey / logSheet / sumSheet / folder = ชื่อที่ใช้เก็บแม่แบบ บันทึก และไฟล์ PDF ของแอปนั้น */
 const APPS = {
   pump: {
-    name: 'Infusion Pump Repair Trainer',
+    name: 'Infusion Pump Repair Trainer', kind: 'repair', clinLabel: 'เครื่องจำลองตั้งค่าทางคลินิก',
     crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3, clinSimPct: 80 },   // clinSimPct = โมดูล 7 เครื่องจำลองการตั้งค่าทางคลินิก
     cert: {
       org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
@@ -49,8 +50,8 @@ const APPS = {
     folder: 'เกียรติบัตร Infusion Pump', tmplName: 'แม่แบบเกียรติบัตร Infusion Pump Trainer'
   },
   incubator: {
-    name: 'Infant Incubator Repair Trainer',
-    crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3 },
+    name: 'Infant Incubator Repair Trainer', kind: 'repair', clinLabel: 'การใช้งานสำหรับช่าง',
+    crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3, clinSimPct: 80 },   // clinSimPct = โมดูล 7 ฝึกตั้งค่า + มุมช่าง
     cert: {
       org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
       org2: '',
@@ -61,6 +62,21 @@ const APPS = {
     },
     ref: 'IIT', tmplKey: 'TEMPLATE_ID_incubator', logSheet: 'เกียรติบัตร ตู้อบ', sumSheet: 'สรุป ตู้อบ',
     folder: 'เกียรติบัตร Infant Incubator', tmplName: 'แม่แบบเกียรติบัตร Infant Incubator Trainer'
+  },
+  /* วิชาคลินิก (พยาบาลและนักศึกษาพยาบาล): อ่านบทเรียน + เครื่องจำลอง + แบบทดสอบ */
+  'incubator-clin': {
+    name: 'Infant Incubator Clinical Use', kind: 'clinical',
+    crit: { readLessons: 8, simPct: 80, quizPct: 80 },
+    cert: {
+      org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      org2: '',
+      title: 'การใช้ตู้อบทารกอย่างปลอดภัย (Infant Incubator Clinical Use)',
+      subject: 'ของศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      signer: 'รศ.ดร.ณัฐดนัย สิงห์คลีวรรณ',
+      signerPos: 'ผู้จัดทำสื่อการเรียนรู้'
+    },
+    ref: 'IIC', tmplKey: 'TEMPLATE_ID_incubator_clin', logSheet: 'เกียรติบัตร ตู้อบคลินิก', sumSheet: 'สรุป ตู้อบคลินิก',
+    folder: 'เกียรติบัตร Infant Incubator Clinical', tmplName: 'แม่แบบเกียรติบัตร Infant Incubator Clinical Use'
   }
 };
 const appOf_ = a => (APPS[String(a || '').trim()] ? String(a).trim() : DEFAULT_APP);
@@ -280,36 +296,67 @@ function enroll_(u, d) {
   return { ok: true, enrolled: list };
 }
 
-/* ความคืบหน้าทุกแอปของผู้เรียนคนเดียว (ตรรกะเดียวกับ summarize_) */
+/* ---------------- เกณฑ์ผ่าน (ใช้ร่วมกันทั้งเว็บหลัก สรุปผล และเกียรติบัตร) ---------------- */
+function newAcc_() { return { learn: {}, exam: {}, order: {}, read: {}, quiz: 0, clin: 0, csim: 0, any: false }; }
+/* เพิ่มคะแนน 1 แถวเข้าตัวสะสม */
+function addScore_(p, key, sc, mx) {
+  key = String(key || ''); p.any = true;
+  if (key.indexOf('learn:') === 0) p.learn[key] = 1;
+  if (key.indexOf('exam:') === 0) p.exam[key] = Math.max(p.exam[key] || 0, sc);
+  if (key.indexOf('order:') === 0) p.order[key] = 1;
+  if (key.indexOf('read:') === 0) p.read[key] = 1;
+  const pc = mx ? Math.round(sc / mx * 100) : 0;
+  if (key === 'quiz') p.quiz = Math.max(p.quiz, pc);
+  if (key === 'clin:sim') p.clin = Math.max(p.clin, pc);
+  if (key === 'csim') p.csim = Math.max(p.csim, pc);
+}
+/* ประเมินตามเกณฑ์ของแอป คืน rows (ข้อเกณฑ์ ค่า ผ่าน/ไม่ผ่าน) pass pct และ line (ข้อความบนเกียรติบัตร) */
+function evalCrit_(app, p) {
+  const A = APPS[app], C = A.crit, rows = [];
+  const row = (t, v, ok, f) => rows.push({ t, v, ok: !!ok, f: Math.max(0, Math.min(1, f)) });
+  let line;
+  if (A.kind === 'clinical') {
+    const nr = Object.keys(p.read).length;
+    row('อ่านบทเรียนครบ ' + C.readLessons + ' บท', nr + '/' + C.readLessons, nr >= C.readLessons, nr / C.readLessons);
+    row('เครื่องจำลอง ≥ ' + C.simPct + '%', p.csim ? p.csim + '%' : 'ยังไม่ได้ทำ', p.csim >= C.simPct, p.csim / C.simPct);
+    row('แบบทดสอบ ≥ ' + C.quizPct + '%', p.quiz ? p.quiz + '%' : 'ยังไม่ได้ทำ', p.quiz >= C.quizPct, p.quiz / C.quizPct);
+    line = 'บทเรียน ' + nr + ' บท · เครื่องจำลอง ' + p.csim + '% · แบบทดสอบ ' + p.quiz + '%';
+  } else {
+    const ev = Object.keys(p.exam).map(k => p.exam[k]), nl = Object.keys(p.learn).length, no = Object.keys(p.order).length;
+    const avg = ev.length ? Math.round(ev.reduce((x, y) => x + y, 0) / ev.length) : 0;
+    p.avg = avg; p.nExam = ev.length;
+    row('โหมดเรียนรู้ ' + C.learnCases + ' เคส', nl + '/' + C.learnCases, nl >= C.learnCases, nl / C.learnCases);
+    row('โหมดสอบ ' + C.examCases + ' เคส เฉลี่ย ≥ ' + C.examAvg, ev.length + '/' + C.examCases + (ev.length ? ' · เฉลี่ย ' + avg : ''),
+      ev.length >= C.examCases && avg >= C.examAvg, ev.length / C.examCases * (avg >= C.examAvg || !ev.length ? 1 : 0.8));
+    row('แบบทดสอบ ≥ ' + C.quizPct + '%', p.quiz ? p.quiz + '%' : 'ยังไม่ได้ทำ', p.quiz >= C.quizPct, p.quiz / C.quizPct);
+    row('ลำดับขั้นตอน ' + C.orderTasks + ' งาน', no + '/' + C.orderTasks, no >= C.orderTasks, no / C.orderTasks);
+    if (C.clinSimPct) row(A.clinLabel + ' ≥ ' + C.clinSimPct + '%', p.clin ? p.clin + '%' : 'ยังไม่ได้ทำ', p.clin >= C.clinSimPct, p.clin / C.clinSimPct);
+    line = 'โหมดเรียนรู้ ' + nl + ' เคส · โหมดสอบเฉลี่ย ' + avg + ' คะแนน · แบบทดสอบ ' + p.quiz + '% · ลำดับขั้นตอน ' + no + ' งาน'
+      + (C.clinSimPct ? ' · ' + A.clinLabel + ' ' + p.clin + '%' : '');
+  }
+  const pass = rows.every(r => r.ok);
+  const pct = pass ? 100 : Math.min(99, Math.round(rows.reduce((x, r) => x + r.f, 0) / rows.length * 100));
+  return { rows, pass, pct, line };
+}
+
+/* ความคืบหน้าทุกแอปของผู้เรียนคนเดียว */
 function progressOf_(sid) {
   const P = {};
-  Object.keys(APPS).forEach(a => P[a] = { learn: {}, exam: {}, order: {}, quiz: 0, clin: 0, any: false });
+  Object.keys(APPS).forEach(a => P[a] = newAcc_());
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (sh && sh.getLastRow() > 1) {
     const cols = Math.min(14, Math.max(13, sh.getLastColumn()));
     sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(sid).matchEntireCell(true).findAll().forEach(c => {
       const r = sh.getRange(c.getRow(), 1, 1, cols).getValues()[0];
-      const p = P[appOf_(r[13])], key = String(r[10] || ''), sc = Number(r[6]), mx = Number(r[7]);
-      p.any = true;
-      if (key.indexOf('learn:') === 0) p.learn[key] = 1;
-      if (key.indexOf('exam:') === 0) p.exam[key] = Math.max(p.exam[key] || 0, sc);
-      if (key.indexOf('order:') === 0) p.order[key] = 1;
-      if (key === 'quiz' && mx) p.quiz = Math.max(p.quiz, Math.round(sc / mx * 100));
-      if (key === 'clin:sim' && mx) p.clin = Math.max(p.clin, Math.round(sc / mx * 100));
+      addScore_(P[appOf_(r[13])], r[10], Number(r[6]), Number(r[7]));
     });
   }
   const out = {};
   Object.keys(P).forEach(a => {
-    const p = P[a], C = APPS[a].crit, ev = Object.keys(p.exam).map(k => p.exam[k]);
-    const avg = ev.length ? Math.round(ev.reduce((x, y) => x + y, 0) / ev.length) : 0;
-    const o = { learn: Object.keys(p.learn).length, exam: ev.length, avg, quiz: p.quiz, order: Object.keys(p.order).length, clin: p.clin, crit: C, started: p.any };
-    o.pass = o.learn >= C.learnCases && o.exam >= C.examCases && o.avg >= C.examAvg && o.quiz >= C.quizPct && o.order >= C.orderTasks
-      && (!C.clinSimPct || o.clin >= C.clinSimPct);
-    const part = [Math.min(1, o.learn / C.learnCases), Math.min(1, o.exam / C.examCases) * (o.avg >= C.examAvg || !o.exam ? 1 : 0.8),
-      Math.min(1, o.quiz / C.quizPct), Math.min(1, o.order / C.orderTasks)];
-    if (C.clinSimPct) part.push(Math.min(1, o.clin / C.clinSimPct));
-    o.pct = o.pass ? 100 : Math.round(part.reduce((x, y) => x + y, 0) / part.length * 100);
-    out[a] = o;
+    const p = P[a], e = evalCrit_(a, p);
+    /* ฟิลด์เดิม (learn exam avg …) คงไว้ให้หน้าเว็บรุ่นเก่า */
+    out[a] = { rows: e.rows.map(r => ({ t: r.t, v: r.v, ok: r.ok })), pass: e.pass, pct: e.pct, started: p.any, crit: APPS[a].crit,
+      learn: Object.keys(p.learn).length, exam: p.nExam || 0, avg: p.avg || 0, quiz: p.quiz, order: Object.keys(p.order).length, clin: p.clin };
   });
   return out;
 }
@@ -389,6 +436,10 @@ function onOpen() {
       .addItem('1) สร้างแม่แบบเกียรติบัตร (ครั้งแรกครั้งเดียว)', 'makeTemplateIncubator')
       .addItem('2) สรุปผลผ่านเกณฑ์', 'evaluateIncubator')
       .addItem('3) ออกเกียรติบัตรให้ผู้ผ่านเกณฑ์', 'createCertificatesIncubator'))
+    .addSubMenu(ui.createMenu('ตู้อบทารก วิชาคลินิก')
+      .addItem('1) สร้างแม่แบบเกียรติบัตร (ครั้งแรกครั้งเดียว)', 'makeTemplateIncubatorClin')
+      .addItem('2) สรุปผลผ่านเกณฑ์', 'evaluateIncubatorClin')
+      .addItem('3) ออกเกียรติบัตรให้ผู้ผ่านเกณฑ์', 'createCertificatesIncubatorClin'))
     .addToUi();
 }
 
@@ -498,6 +549,9 @@ function createCertificates() { createCertificates_('pump'); }
 function makeTemplateIncubator() { makeTemplate_('incubator'); }
 function evaluateIncubator() { evaluate_('incubator'); }
 function createCertificatesIncubator() { createCertificates_('incubator'); }
+function makeTemplateIncubatorClin() { makeTemplate_('incubator-clin'); }
+function evaluateIncubatorClin() { evaluate_('incubator-clin'); }
+function createCertificatesIncubatorClin() { createCertificates_('incubator-clin'); }
 
 /* สร้างแม่แบบใน Google Slides (อาจารย์เปิดไปเพิ่มโลโก้และลายเซ็นได้) */
 function makeTemplate_(app) {
@@ -533,7 +587,6 @@ function makeTemplate_(app) {
 
 /* อ่านคะแนนของแอปที่เลือก แล้วสรุปรายคน */
 function summarize_(app) {
-  const CRIT = APPS[app].crit;
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName(SHEET_NAME);
   if (!sh || sh.getLastRow() < 2) return [];
@@ -543,26 +596,17 @@ function summarize_(app) {
     users[String(r[1]).trim()] = { name: r[2], type: r[3] === 'gp' ? 'บุคลากร/บุคคลทั่วไป' : 'นักศึกษา', sec: r[4], org: [r[5], r[6]].filter(String).join(' · ') };
   });
   const cols = Math.min(14, Math.max(13, sh.getLastColumn()));
-  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, cols).getValues();
   const P = {};
-  rows.forEach(r => {
+  sh.getRange(2, 1, sh.getLastRow() - 1, cols).getValues().forEach(r => {
     if (appOf_(r[13]) !== app) return;
     const sid = String(r[1]).trim(); if (!sid || sid === 'test0000') return;
-    const p = P[sid] = P[sid] || { sid, name: r[2], sec: r[3], type: r[11], org: r[12], learn: {}, exam: {}, order: {}, quiz: 0, clin: 0 };
-    const key = String(r[10] || ''), sc = Number(r[6]), mx = Number(r[7]);
-    if (key.indexOf('learn:') === 0) p.learn[key] = 1;
-    if (key.indexOf('exam:') === 0) p.exam[key] = Math.max(p.exam[key] || 0, sc);
-    if (key.indexOf('order:') === 0) p.order[key] = 1;
-    if (key === 'quiz' && mx) p.quiz = Math.max(p.quiz, Math.round(sc / mx * 100));
-    if (key === 'clin:sim' && mx) p.clin = Math.max(p.clin, Math.round(sc / mx * 100));
+    const p = P[sid] = P[sid] || Object.assign(newAcc_(), { sid, name: r[2], sec: r[3], type: r[11], org: r[12] });
+    addScore_(p, r[10], Number(r[6]), Number(r[7]));
   });
   return Object.keys(P).map(k => {
-    const p = P[k], u = users[k], ev = Object.keys(p.exam).map(x => p.exam[x]);
+    const p = P[k], u = users[k];
     if (u) { p.name = u.name || p.name; p.type = u.type; p.sec = u.sec; p.org = u.org; }
-    p.nLearn = Object.keys(p.learn).length; p.nExam = ev.length; p.nOrder = Object.keys(p.order).length;
-    p.avg = ev.length ? Math.round(ev.reduce((a, b) => a + b, 0) / ev.length) : 0;
-    p.pass = p.nLearn >= CRIT.learnCases && p.nExam >= CRIT.examCases && p.avg >= CRIT.examAvg && p.quiz >= CRIT.quizPct && p.nOrder >= CRIT.orderTasks
-      && (!CRIT.clinSimPct || p.clin >= CRIT.clinSimPct);
+    p.ev = evalCrit_(app, p); p.pass = p.ev.pass;
     return p;
   }).sort((a, b) => a.sid.localeCompare(b.sid));
 }
@@ -572,9 +616,9 @@ function evaluate_(app) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName(A.sumSheet) || ss.insertSheet(A.sumSheet);
   sh.clear();
-  const clin = !!A.crit.clinSimPct;
-  sh.appendRow(['รหัสผู้ใช้', 'ชื่อ-สกุล', 'ประเภท', 'กลุ่ม / หน่วยงาน', 'เรียนรู้ (เคส)', 'สอบ (เคส)', 'สอบเฉลี่ย', 'แบบทดสอบ %', 'ลำดับขั้นตอน (งาน)'].concat(clin ? ['ตั้งค่าทางคลินิก %'] : []).concat(['ผลเกณฑ์']));
-  list.forEach(p => sh.appendRow([p.sid, p.name, p.type || 'นักศึกษา', p.org || p.sec, p.nLearn, p.nExam, p.avg, p.quiz, p.nOrder].concat(clin ? [p.clin] : []).concat([p.pass ? 'ผ่าน' : 'ยังไม่ผ่าน'])));
+  const head = evalCrit_(app, newAcc_()).rows.map(r => r.t);
+  sh.appendRow(['รหัสผู้ใช้', 'ชื่อ-สกุล', 'ประเภท', 'กลุ่ม / หน่วยงาน'].concat(head).concat(['ผลเกณฑ์']));
+  list.forEach(p => sh.appendRow([p.sid, p.name, p.type || 'นักศึกษา', p.org || p.sec].concat(p.ev.rows.map(r => r.v)).concat([p.pass ? 'ผ่าน' : 'ยังไม่ผ่าน'])));
   sh.setFrozenRows(1);
   SpreadsheetApp.getUi().alert(A.name + '\nสรุปแล้ว ' + list.length + ' คน ผ่านเกณฑ์ ' + list.filter(p => p.pass).length + ' คน (ดูแท็บ "' + A.sumSheet + '")');
 }
@@ -611,7 +655,7 @@ function createCertificates_(app) {
     pres.replaceAllText('{{sid}}', p.sid);
     pres.replaceAllText('{{date}}', thaiDate_(now));
     pres.replaceAllText('{{ref}}', ref);
-    pres.replaceAllText('{{scores}}', 'โหมดเรียนรู้ ' + p.nLearn + ' เคส · โหมดสอบเฉลี่ย ' + p.avg + ' คะแนน · แบบทดสอบ ' + p.quiz + '% · ลำดับขั้นตอน ' + p.nOrder + ' งาน' + (A.crit.clinSimPct ? ' · ตั้งค่าทางคลินิก ' + p.clin + '%' : ''));
+    pres.replaceAllText('{{scores}}', p.ev.line);
     pres.saveAndClose();
     const pdf = folder.createFile(copy.getAs('application/pdf')).setName('เกียรติบัตร-' + p.sid + '-' + p.name + '.pdf');
     copy.setTrashed(true);
