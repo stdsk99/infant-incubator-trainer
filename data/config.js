@@ -32,6 +32,7 @@ window.APP_CONFIG = {
     examCases: 8,
     examAvg: 70,
     quizPct: 80,
-    orderTasks: 3
+    orderTasks: 3,
+    clinSimPct: 80   // โมดูล 7 ฝึกตั้งค่า + มุมช่าง ร้อยละขั้นต่ำ (ใช้ครั้งที่ดีที่สุด)
   }
 };

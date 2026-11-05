@@ -102,3 +102,72 @@ svg.lp.off .ib-coil{stroke:currentColor;filter:none}
 .zm-th{fill:var(--accent);opacity:.8}
 .zm-thbad{fill:var(--warn)}
 .zm.wiping{animation:pulse .5s ease-in-out 3}
+
+/* ===== โมดูล 7: การใช้งานสำหรับช่าง ===== */
+.kicker{font-size:12px;font-weight:600;color:var(--accent);letter-spacing:.03em}
+.clgrid{display:grid;gap:16px}
+@media (min-width:900px){ .clgrid{grid-template-columns:240px minmax(0,1fr);align-items:start} .clnav{position:sticky;top:112px} }
+.clnav{display:flex;flex-direction:column;gap:6px}
+@media (max-width:899px){ .clnav{flex-direction:row;overflow-x:auto;padding-bottom:4px} .clnav button{flex:none} }
+.clnav button{justify-content:flex-start;text-align:left;border-radius:10px}
+.clnav button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.lesson{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;min-width:0}
+.lesson h2{margin-top:0}.lesson h3{margin:22px 0 4px}
+.lesson ul,.lesson ol{padding-left:22px}.lesson li{margin:4px 0}
+.exbox{background:var(--low-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px}
+.simtop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+.simdots{display:flex;gap:6px}.simdots i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.simdots i.on{background:var(--ink)}.simdots i.ok{background:var(--accent)}.simdots i.bad{background:var(--warn)}
+.order{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--mid);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.order p{margin:4px 0 0;font-size:15px}
+ul.gl{list-style:none;padding:0}ul.gl li{padding:6px 10px;border-radius:8px;margin:4px 0;font-weight:600}
+ul.gl li.ok{background:var(--accent-soft);color:var(--accent)}ul.gl li.bad{background:var(--warn-soft);color:var(--warn)}
+.bad-t{color:var(--warn);font-weight:600}
+/* แถบสถานะคะแนน */
+.tstat{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:0 0 10px;font-size:14px}
+.tp{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px}
+.tp.ok{background:var(--accent-soft);color:var(--accent);border-color:transparent;font-weight:600}
+/* แผงควบคุมตู้อบจำลอง */
+.incface{background:#e9edf1;border-radius:20px;padding:14px;max-width:560px;box-shadow:inset 0 1px 0 #fff,0 6px 18px rgba(0,0,0,.14)}
+.iscr{background:#10202b;color:#e8f3f7;border-radius:12px;padding:12px;box-shadow:inset 0 2px 8px rgba(0,0,0,.5)}
+.imode{display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:13px;font-weight:600}
+.imode span{border:1px solid #39505f;border-radius:6px;padding:2px 10px;color:#6f8796}
+.imode span.on{background:#2ec4a6;border-color:#2ec4a6;color:#08211b}
+.imode .iov{margin-left:auto;background:#f4a64a;border-color:#f4a64a;color:#2a1600}
+.itiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.itile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:#182e3b;border:2px solid #24404f;border-radius:10px;padding:8px 10px;color:#e8f3f7;min-height:auto;cursor:pointer;font:inherit}
+.itile span{font-size:11px;color:#8fb0c1;font-weight:600}.itile b{font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}.itile small{font-size:11px;color:#8fb0c1;min-height:14px}
+.itile.sel{border-color:#2ec4a6;box-shadow:0 0 0 2px rgba(46,196,166,.35)}
+.itile.off b{color:#6f8796;font-size:22px}
+.imsg{min-height:20px;margin-top:8px;font-size:13px;color:#f8c77e}
+.ikeys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.ikeys button{background:#fff;border:1px solid #b9c3cc;border-radius:10px;min-height:48px;font-weight:600;font-size:15px;color:#1d2430;box-shadow:0 2px 0 #b9c3cc}
+.ikeys button:active{transform:translateY(2px);box-shadow:none}
+.ikeys button[data-k="mode"],.ikeys button[data-k="over"],.ikeys button[data-k="onoff"]{font-size:13px}
+.ikeys button[data-k="mode"]{grid-column:span 2}
+.ikeys button.lit{background:#f4a64a;border-color:#c97d22;color:#2a1600}
+.ikeys button:disabled,.itile:disabled{opacity:.6;cursor:default}
+@media (max-width:420px){ .itile b{font-size:22px} }
+/* แบบฝึกค่าตั้งเครื่อง */
+.cfggrid{display:grid;gap:12px}
+@media (min-width:760px){ .cfggrid{grid-template-columns:1fr 1fr;align-items:start} }
+.cfgrec{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.cfgrec dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:14px}.cfgrec dt{color:var(--muted)}.cfgrec dd{margin:0}
+.cfgscr{background:#10202b;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px}
+.cfgh{color:#8fb0c1;font-size:12px;font-weight:600;padding:2px 6px 6px;letter-spacing:.04em}
+.cfgrow{display:flex;justify-content:space-between;gap:10px;background:#182e3b;border:2px solid transparent;border-radius:8px;color:#e8f3f7;padding:8px 10px;min-height:44px;font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.cfgrow b{font-weight:600;text-align:right}
+.cfgrow.on{border-color:#f4a64a}
+.cfgrow.good{border-color:#2ec4a6;background:#16443d}
+.cfgrow.bad{border-color:#ff7b6e}
+.cfgrow.miss{border-color:#ff7b6e;border-style:dashed}
+/* ตรวจก่อนใช้งาน */
+.chk{display:grid;gap:8px;margin:12px 0}
+.chkrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.chkrow p{margin:2px 0 0;font-size:14px}
+.chkrow .act{color:var(--mid);font-weight:600}
+.chkrow.good{border-color:var(--accent);background:var(--accent-soft)}
+.chkrow.bad{border-color:var(--warn);background:var(--warn-soft)}
+.chkrow .seg{flex:none}
+.chkrow .seg button.on{background:var(--ink);color:var(--bg)}
+@media (max-width:560px){ .chkrow{flex-direction:column;align-items:stretch} .chkrow .seg{align-self:flex-end} }
