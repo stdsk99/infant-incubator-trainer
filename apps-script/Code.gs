@@ -1,23 +1,32 @@
-/* Google Apps Script สำหรับ Repair Trainer หลายแอป (ใช้ Google Sheet และบัญชีผู้เรียนร่วมกัน)
+/* Google Apps Script สำหรับศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์ (ใช้ Google Sheet และบัญชีผู้เรียนร่วมกันทุกแอป)
    แอปที่รองรับ: pump = Infusion Pump Repair Trainer, incubator = Infant Incubator Repair Trainer
-   1) ลงทะเบียน / เข้าสู่ระบบ / รับคะแนน / ลงทะเบียนเรียนวิชา / ตรวจสอบเกียรติบัตร (doPost)
-      ใช้ร่วมกับเว็บหลัก ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์ (stdsk99/medtechcenter)
-   2) สรุปผลผ่านเกณฑ์ และออกเกียรติบัตรทางการเป็น PDF แยกตามแอป (เมนู "เกียรติบัตร" ใน Google Sheets)
+   1) สมัคร / เข้าสู่ระบบ / เปลี่ยนรหัสผ่าน ทำที่เว็บหลัก (stdsk99/medtechcenter) ที่เดียว
+      แอปฝึกซ่อมรับ "บัตรผ่าน" (session token) จากเว็บหลัก แล้วใช้ส่งคะแนน
+   2) เมนู "ผู้ใช้" ใน Google Sheets: ดูข้อมูล รีเซ็ตรหัสผ่าน ระงับบัญชี ยกเลิกการลงทะเบียน ลบผู้ใช้
+   3) เมนู "เกียรติบัตร": สรุปผลผ่านเกณฑ์ และออกเกียรติบัตรทางการเป็น PDF แยกตามแอป
 
-   วิธีอัปเดตจากเวอร์ชันเดิม (ใช้กับ Sheet เดิมได้เลย ข้อมูลเดิมไม่หาย)
-   - เปิด Google Sheet เดิม → ส่วนขยาย → Apps Script → วางโค้ดนี้ทับทั้งหมด → บันทึก
-   - Deploy → Manage deployments → แก้ไข deployment เดิม → Version: New version → Deploy
-     (URL เดิมยังใช้ได้ ทั้งสองแอปใช้ URL และ TOKEN เดียวกัน)
-   - คะแนนเดิมที่ไม่มีคอลัมน์ "แอป" จะนับเป็นของ Infusion Pump อัตโนมัติ */
+   ความปลอดภัย
+   - รหัสผ่านเก็บเป็นค่า hash แบบมี salt รายคน + รหัสลับ (pepper) ที่เก็บใน Script Properties ไม่ได้อยู่ใน Sheet
+   - ใส่รหัสผ่านผิด 5 ครั้งติดกัน ล็อกบัญชี 15 นาที
+   - บัตรผ่านมีอายุ 30 วัน ถูกยกเลิกทันทีเมื่อเปลี่ยนรหัสผ่าน รีเซ็ต หรือระงับบัญชี
+   - ผู้ใช้เดิมที่ใช้ PIN: เข้าสู่ระบบด้วย PIN เดิมได้ แล้วระบบบังคับให้ตั้งรหัสผ่านใหม่
+   ห้ามลบ Script Properties ชื่อ PEPPER และ TOKEN_SECRET (ถ้าลบ ผู้ใช้ทุกคนจะเข้าสู่ระบบไม่ได้)
 
-const TOKEN = 'pump-2569';          // ต้องตรงกับ token ใน data/config.js ของทุกแอป
+   วิธีอัปเดต: เปิด Google Sheet เดิม → ส่วนขยาย → Apps Script → วางโค้ดนี้ทับทั้งหมด → บันทึก
+   → Deploy → Manage deployments → แก้ไข deployment เดิม → Version: New version → Deploy (URL เดิมใช้ต่อได้) */
+
+const TOKEN = 'pump-2569';          // รหัสระบุแอป (ไม่ใช่รหัสลับ) ต้องตรงกับ config ของเว็บหลักและทุกแอป
 const SHEET_NAME = 'scores';
 const USER_SHEET = 'users';
 const HEAD = ['เวลา', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'กลุ่ม', 'โมดูล', 'รายการ', 'คะแนน', 'เต็ม', 'ร้อยละ', 'รายละเอียด', 'key', 'ประเภทผู้เรียน', 'หน่วยงาน', 'แอป'];
-const UHEAD = ['ลงทะเบียนเมื่อ', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'ประเภท', 'กลุ่ม', 'หน่วยงาน', 'ตำแหน่ง', 'pinHash (ลบเพื่อให้ตั้ง PIN ใหม่)', 'ยินยอม PDPA', 'เข้าสู่ระบบล่าสุด'];
+const UHEAD = ['ลงทะเบียนเมื่อ', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'ประเภท', 'กลุ่ม', 'หน่วยงาน', 'ตำแหน่ง', 'รหัสผ่าน (เข้ารหัสแล้ว ห้ามแก้)', 'ยินยอม PDPA', 'เข้าสู่ระบบล่าสุด',
+  'สถานะ', 'ต้องเปลี่ยนรหัสผ่าน', 'ใส่ผิดติดกัน', 'ล็อกถึง', 'รุ่นบัตรผ่าน'];
+const U = { sid: 2, name: 3, cred: 8, last: 10, status: 11, must: 12, fails: 13, lock: 14, ver: 15 };   // เลขคอลัมน์ในแท็บ users
 const DEFAULT_APP = 'pump';
 const ENROLL_SHEET = 'enrollments';
-const EHEAD = ['ลงทะเบียนเรียนเมื่อ', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'แอป', 'ช่องทาง'];
+const EHEAD = ['ลงทะเบียนเรียนเมื่อ', 'รหัสผู้ใช้', 'ชื่อ-สกุล', 'แอป', 'ช่องทาง', 'สถานะ'];
+const SUSPENDED = 'ระงับ', CANCELLED = 'ยกเลิก';
+const MAX_FAILS = 5, LOCK_MIN = 15, TOKEN_DAYS = 30, HASH_ROUNDS = 300;
 
 /* ตั้งค่าแต่ละแอป
    crit  = เกณฑ์ผ่าน (ต้องตรงกับ criteria ใน data/config.js ของแอปนั้น) clinSimPct ใส่เฉพาะแอปที่มีเครื่องจำลองทางคลินิก
@@ -68,14 +77,94 @@ function sheet_(name, head) {
 }
 function findUser_(sid) {
   const sh = sheet_(USER_SHEET, UHEAD);
-  if (sh.getLastRow() < 2) return null;
+  if (!sid || sh.getLastRow() < 2) return null;
   const cell = sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(sid).matchEntireCell(true).findNext();
-  if (!cell) return null;
-  const row = cell.getRow(), v = sh.getRange(row, 1, 1, UHEAD.length).getValues()[0];
-  return { sh, row, sid: String(v[1]), name: v[2], type: v[3], sec: v[4], org: v[5], role: v[6], pin: String(v[7] || '') };
+  return cell ? userAt_(sh, cell.getRow()) : null;
 }
+function userAt_(sh, row) {
+  const v = sh.getRange(row, 1, 1, UHEAD.length).getValues()[0];
+  return { sh, row, sid: String(v[1]), name: v[2], type: v[3], sec: v[4], org: v[5], role: v[6], cred: String(v[7] || ''),
+    suspended: String(v[10]).trim() === SUSPENDED, must: String(v[11]).trim() !== '', fails: Number(v[12]) || 0,
+    lockUntil: v[13] ? new Date(v[13]).getTime() : 0, ver: Number(v[14]) || 0 };
+}
+function setU_(u, col, val) { u.sh.getRange(u.row, col).setValue(val); }
 function profileOf_(u) {
   return { type: u.type === 'gp' ? 'gp' : 'st', sid: u.sid, name: u.name, sec: u.sec, org: u.org, role: u.role };
+}
+
+/* ---------------- รหัสผ่านและบัตรผ่าน ---------------- */
+function secret_(key) {
+  const P = PropertiesService.getScriptProperties();
+  let v = P.getProperty(key);
+  if (!v) { v = Utilities.getUuid() + Utilities.getUuid(); P.setProperty(key, v); }
+  return v;
+}
+const hex_ = bytes => bytes.map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('');
+const sha_ = s => hex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8));
+
+/* นโยบายรหัสผ่าน: 8–16 ตัว อักษรภาษาอังกฤษ ตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักขระพิเศษ อย่างละ 1 ตัวขึ้นไป */
+function pwOk_(pw) {
+  pw = String(pw || '');
+  return /^[\x21-\x7E]{8,16}$/.test(pw) && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /\d/.test(pw) && /[^A-Za-z0-9]/.test(pw);
+}
+function hashPw_(pw, salt) {
+  const pepper = secret_('PEPPER');
+  let h = sha_(pepper + '|' + salt + '|' + pw);
+  for (let i = 0; i < HASH_ROUNDS; i++) h = sha_(h + pepper);
+  return h;
+}
+function makeCred_(pw) {
+  const salt = Utilities.getUuid().replace(/-/g, '');
+  return 'v2$' + salt + '$' + hashPw_(pw, salt);
+}
+/* ตรวจรหัสผ่าน: 'ok' | 'legacy' (PIN แบบเดิมถูกต้อง) | 'bad' */
+function checkCred_(u, pw) {
+  pw = String(pw || '');
+  if (!pw || !u.cred) return 'bad';
+  if (u.cred.indexOf('v2$') === 0) {
+    const p = u.cred.split('$');
+    return hashPw_(pw, p[1]) === p[2] ? 'ok' : 'bad';
+  }
+  return /^\d{4,6}$/.test(pw) && sha_('ipt|' + u.sid + '|' + pw) === u.cred ? 'legacy' : 'bad';
+}
+
+function b64_(s) { return Utilities.base64EncodeWebSafe(s, Utilities.Charset.UTF_8).replace(/=+$/, ''); }
+function sign_(s) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(s, secret_('TOKEN_SECRET'))).replace(/=+$/, ''); }
+function issueToken_(u) {
+  const p = b64_(JSON.stringify({ s: u.sid, v: u.ver, e: Date.now() + TOKEN_DAYS * 864e5 }));
+  return p + '.' + sign_(p);
+}
+/* ตรวจบัตรผ่าน คืน {u} หรือ {err} */
+function auth_(tk) {
+  const parts = String(tk || '').split('.');
+  if (parts.length !== 2 || sign_(parts[0]) !== parts[1]) return { err: 'auth' };
+  let d;
+  try { d = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(parts[0] + '==='.slice((parts[0].length + 3) % 4))).getDataAsString()); }
+  catch (e) { return { err: 'auth' }; }
+  if (!d || d.e < Date.now()) return { err: 'auth' };
+  const u = findUser_(String(d.s));
+  if (!u) return { err: 'auth' };
+  if (u.suspended) return { err: 'suspended' };
+  if (u.ver !== d.v || u.must) return { err: 'auth' };
+  return { u };
+}
+
+/* ตรวจรหัสผ่านพร้อมนับครั้งที่ผิด คืน {u, res} หรือ {err} */
+function login0_(sid, pw) {
+  const u = findUser_(sid);
+  if (!u) return { err: 'nouser' };
+  if (u.suspended) return { err: 'suspended' };
+  const now = Date.now();
+  if (u.lockUntil > now) return { err: 'locked', mins: Math.ceil((u.lockUntil - now) / 60000) };
+  const res = checkCred_(u, pw);
+  if (res === 'bad') {
+    const f = u.fails + 1;
+    if (f >= MAX_FAILS) { setU_(u, U.fails, 0); setU_(u, U.lock, new Date(now + LOCK_MIN * 60000)); return { err: 'locked', mins: LOCK_MIN }; }
+    setU_(u, U.fails, f);
+    return { err: 'badpw', left: MAX_FAILS - f };
+  }
+  if (u.fails || u.lockUntil) { setU_(u, U.fails, 0); setU_(u, U.lock, ''); }
+  return { u, res };
 }
 
 /* ---------------- รับคำขอจากเว็บ ---------------- */
@@ -86,94 +175,108 @@ function doPost(e) {
   try { d = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, err: 'bad' }); }
   if (d.token !== TOKEN) return out_({ ok: false, err: 'token' });
   if (d.action === 'verify') return out_(verify_(String(d.ref || '').trim()));   // ไม่ต้องเข้าสู่ระบบ
-  const sid = String(d.sid || '').trim();
-  if (!sid) return out_({ ok: false, err: 'nouser' });
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    if (d.action === 'register') return out_(register_(sid, d));
-    if (d.action === 'login') return out_(login_(sid, d));
-    if (d.action === 'portal') return out_(portal_(sid, d));
-    if (d.action === 'enroll') return out_(enroll_(sid, d));
-    if (d.action === 'score' || !d.action) return out_(score_(sid, d));
+    switch (d.action) {
+      case 'register': return out_(register_(String(d.sid || '').trim(), d));
+      case 'login': return out_(login_(String(d.sid || '').trim(), d));
+      case 'chpw': return out_(chpw_(d));
+      case 'portal': case 'enroll': case 'app': case 'score': {
+        const a = auth_(d.tk); if (a.err) return out_({ ok: false, err: a.err });
+        if (d.action === 'portal') return out_(portal_(a.u));
+        if (d.action === 'enroll') return out_(enroll_(a.u, d));
+        if (d.action === 'app') return out_(app_(a.u, d));
+        return out_(score_(a.u, d));
+      }
+    }
     return out_({ ok: false, err: 'bad' });
   } finally { lock.releaseLock(); }
 }
 
 function register_(sid, d) {
-  if (findUser_(sid)) return { ok: false, err: 'exists' };
   const p = d.profile || {};
+  if (!sid || !String(p.name || '').trim()) return { ok: false, err: 'bad' };
+  if (!pwOk_(d.pw)) return { ok: false, err: 'weakpw' };
+  if (findUser_(sid)) return { ok: false, err: 'exists' };
   const sh = sheet_(USER_SHEET, UHEAD);
-  sh.appendRow([new Date(), sid, p.name || '', p.type === 'gp' ? 'gp' : 'st', p.sec || '', p.org || '', p.role || '', d.pin || '', 'ยินยอม ' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm'), new Date()]);
+  sh.appendRow([new Date(), sid, String(p.name).trim(), p.type === 'gp' ? 'gp' : 'st', p.sec || '', p.org || '', p.role || '', makeCred_(d.pw),
+    'ยินยอม ' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm'), new Date(), 'ใช้งาน', '', 0, '', 1]);
   sh.getRange(sh.getLastRow(), 2).setNumberFormat('@').setValue(sid);
-  return { ok: true, profile: { type: p.type === 'gp' ? 'gp' : 'st', sid, name: p.name || '', sec: p.sec || '', org: p.org || '', role: p.role || '' } };
+  return portal_(userAt_(sh, sh.getLastRow()));
 }
 
-/* เข้าสู่ระบบ: ส่งประวัติคะแนนกลับเฉพาะของแอปที่ขอ */
+/* เข้าสู่ระบบที่เว็บหลัก: คืนบัตรผ่าน + ภาพรวม หรือ mustchange ถ้าต้องตั้งรหัสผ่านใหม่ก่อน */
 function login_(sid, d) {
-  const u = findUser_(sid);
-  if (!u) return { ok: false, err: 'nouser' };
-  let reset = false;
-  if (!u.pin) { u.sh.getRange(u.row, 8).setValue(d.pin); reset = true; }   // อาจารย์ลบ PIN ไว้ → ตั้งใหม่
-  else if (u.pin !== d.pin) return { ok: false, err: 'badpin' };
-  u.sh.getRange(u.row, 10).setValue(new Date());
-  const app = appOf_(d.app), hist = [];
-  if (!enrolledApps_(sid).includes(app)) addEnroll_(sid, u.name, app, 'แอป');   // เข้าแอปตรง = ลงทะเบียนให้อัตโนมัติ
+  const r = login0_(sid, d.pw);
+  if (r.err) return { ok: false, err: r.err, mins: r.mins, left: r.left };
+  if (r.res === 'legacy' || r.u.must) return { ok: false, err: 'mustchange', legacy: r.res === 'legacy' };
+  return portal_(r.u);
+}
+
+/* เปลี่ยนรหัสผ่าน (ใช้ทั้งกรณีบังคับเปลี่ยน และผู้เรียนเปลี่ยนเอง) */
+function chpw_(d) {
+  const r = login0_(String(d.sid || '').trim(), d.old);
+  if (r.err) return { ok: false, err: r.err, mins: r.mins, left: r.left };
+  if (!pwOk_(d.pw)) return { ok: false, err: 'weakpw' };
+  if (d.pw === d.old) return { ok: false, err: 'samepw' };
+  const u = r.u;
+  u.ver += 1; u.must = false;
+  setU_(u, U.cred, makeCred_(d.pw)); setU_(u, U.must, ''); setU_(u, U.ver, u.ver);
+  return Object.assign(portal_(u), { changed: true });
+}
+
+/* แอปฝึกซ่อม: ตรวจว่าลงทะเบียนวิชานี้แล้ว คืนโปรไฟล์และประวัติคะแนนของแอปนั้น */
+function app_(u, d) {
+  const app = appOf_(d.app);
+  if (enrolledApps_(u.sid).indexOf(app) < 0) return { ok: false, err: 'notenrolled' };
+  const hist = [];
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (sh && sh.getLastRow() > 1) {
     const w = Math.max(14, sh.getLastColumn());
-    sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(sid).matchEntireCell(true).findAll().forEach(c => {
+    sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(u.sid).matchEntireCell(true).findAll().forEach(c => {
       const v = sh.getRange(c.getRow(), 1, 1, Math.min(w, 14)).getValues()[0];
       if (appOf_(v[13]) !== app) return;
-      hist.push({ t: new Date(v[0]).toISOString(), sid, mod: v[4], item: v[5], score: v[6], max: v[7], detail: v[9], key: v[10] });
+      hist.push({ t: new Date(v[0]).toISOString(), sid: u.sid, mod: v[4], item: v[5], score: v[6], max: v[7], detail: v[9], key: v[10] });
     });
   }
-  return { ok: true, reset, profile: profileOf_(u), hist };
+  setU_(u, U.last, new Date());
+  return { ok: true, profile: profileOf_(u), hist };
 }
 
-function score_(sid, d) {
-  const u = findUser_(sid);
-  if (!u) return { ok: false, err: 'nouser' };
-  if (u.pin && u.pin !== d.pin) return { ok: false, err: 'badpin' };
+function score_(u, d) {
+  const app = appOf_(d.app);
+  if (enrolledApps_(u.sid).indexOf(app) < 0) return { ok: false, err: 'notenrolled' };
   const sh = sheet_(SHEET_NAME, HEAD);
   const pct = d.max ? Math.round(d.score / d.max * 100) : '';
   const isGp = u.type === 'gp';
-  sh.appendRow([new Date(), sid, u.name, u.sec || '', d.mod || '', d.item || '', d.score, d.max, pct, d.detail || '', d.key || '',
-    isGp ? 'บุคลากร/บุคคลทั่วไป' : 'นักศึกษา', isGp ? [u.org, u.role].filter(String).join(' · ') : '', appOf_(d.app)]);
-  sh.getRange(sh.getLastRow(), 2).setNumberFormat('@').setValue(sid);
+  sh.appendRow([new Date(), u.sid, u.name, u.sec || '', d.mod || '', d.item || '', d.score, d.max, pct, d.detail || '', d.key || '',
+    isGp ? 'บุคลากร/บุคคลทั่วไป' : 'นักศึกษา', isGp ? [u.org, u.role].filter(String).join(' · ') : '', app]);
+  sh.getRange(sh.getLastRow(), 2).setNumberFormat('@').setValue(u.sid);
   return { ok: true };
 }
 
-/* ---------------- เว็บหลัก: ลงทะเบียนเรียน / ภาพรวม / ตรวจสอบเกียรติบัตร ---------------- */
-function checkUser_(sid, d) {
-  const u = findUser_(sid);
-  if (!u) return { err: 'nouser' };
-  if (!u.pin) { u.sh.getRange(u.row, 8).setValue(d.pin); return { u, reset: true }; }
-  if (u.pin !== d.pin) return { err: 'badpin' };
-  return { u };
-}
-function enrolledApps_(sid) {
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ENROLL_SHEET);
-  if (!sh || sh.getLastRow() < 2) return [];
-  const out = [];
+/* ---------------- การลงทะเบียนเรียน ---------------- */
+/* อ่านแท็บ enrollments: แถวล่าสุดของแต่ละแอปเป็นตัวตัดสิน (ถ้าสถานะ "ยกเลิก" = ไม่ได้ลงทะเบียน) */
+function enrollState_(sid) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ENROLL_SHEET), st = {};
+  if (!sh || sh.getLastRow() < 2) return st;
   sh.getRange(2, 2, sh.getLastRow() - 1, 1).createTextFinder(sid).matchEntireCell(true).findAll().forEach(c => {
-    const a = String(sh.getRange(c.getRow(), 4).getValue());
-    if (isApp_(a) && out.indexOf(a) < 0) out.push(a);
+    const v = sh.getRange(c.getRow(), 1, 1, EHEAD.length).getValues()[0];
+    if (isApp_(v[3])) st[String(v[3])] = String(v[5]).trim() !== CANCELLED;
   });
-  return out;
+  return st;
 }
+function enrolledApps_(sid) { const st = enrollState_(sid); return Object.keys(APPS).filter(a => st[a]); }
 function addEnroll_(sid, name, app, via) {
   const sh = sheet_(ENROLL_SHEET, EHEAD);
-  sh.appendRow([new Date(), sid, name || '', app, via || 'เว็บหลัก']);
+  sh.appendRow([new Date(), sid, name || '', app, via || 'เว็บหลัก', 'ลงทะเบียน']);
   sh.getRange(sh.getLastRow(), 2).setNumberFormat('@').setValue(sid);
 }
-
-/* ลงทะเบียนเรียนวิชา (1 วิชา = 1 แอป) */
-function enroll_(sid, d) {
-  const r = checkUser_(sid, d); if (r.err) return { ok: false, err: r.err };
+function enroll_(u, d) {
   if (!isApp_(d.app)) return { ok: false, err: 'bad' };
-  const list = enrolledApps_(sid);
-  if (list.indexOf(d.app) < 0) { addEnroll_(sid, r.u.name, d.app, 'เว็บหลัก'); list.push(d.app); }
+  const list = enrolledApps_(u.sid);
+  if (list.indexOf(d.app) < 0) { addEnroll_(u.sid, u.name, d.app, 'เว็บหลัก'); list.push(d.app); }
   return { ok: true, enrolled: list };
 }
 
@@ -224,13 +327,14 @@ function certsOf_(sid) {
   return out;
 }
 
-/* ภาพรวมสำหรับเว็บหลัก: โปรไฟล์ วิชาที่ลงทะเบียน ความคืบหน้า เกียรติบัตร */
-function portal_(sid, d) {
-  const r = checkUser_(sid, d); if (r.err) return { ok: false, err: r.err };
-  r.u.sh.getRange(r.u.row, 10).setValue(new Date());
-  const enrolled = enrolledApps_(sid), progress = progressOf_(sid);
-  Object.keys(progress).forEach(a => { if (progress[a].started && enrolled.indexOf(a) < 0) { addEnroll_(sid, r.u.name, a, 'เรียนในแอปก่อนมีเว็บหลัก'); enrolled.push(a); } });
-  return { ok: true, reset: !!r.reset, profile: profileOf_(r.u), enrolled, progress, certs: certsOf_(sid) };
+/* ภาพรวมสำหรับเว็บหลัก: บัตรผ่าน โปรไฟล์ วิชาที่ลงทะเบียน ความคืบหน้า เกียรติบัตร */
+function portal_(u) {
+  setU_(u, U.last, new Date());
+  const st = enrollState_(u.sid), progress = progressOf_(u.sid);
+  /* ผู้เรียนรุ่นก่อนมีเว็บหลัก: มีคะแนนในแอปแต่ไม่เคยมีประวัติลงทะเบียน → ลงทะเบียนให้ (ถ้าเคยถูกยกเลิก จะไม่ลงทะเบียนให้ซ้ำ) */
+  Object.keys(progress).forEach(a => { if (progress[a].started && !(a in st)) { addEnroll_(u.sid, u.name, a, 'เรียนในแอปก่อนมีเว็บหลัก'); st[a] = true; } });
+  const enrolled = Object.keys(APPS).filter(a => st[a]);
+  return { ok: true, tk: issueToken_(u), profile: profileOf_(u), enrolled, progress, certs: certsOf_(u.sid) };
 }
 
 /* ตรวจสอบเลขที่เกียรติบัตร (เปิดให้ทุกคน คืนค่าเฉพาะข้อมูลที่พิมพ์อยู่บนเกียรติบัตร) */
@@ -249,22 +353,35 @@ function verify_(ref) {
   return { ok: false, err: 'notfound' };
 }
 
-/* ---------------- ทดสอบจากหน้า Apps Script (กด Run ได้) ---------------- */
+/* ---------------- ทดสอบจากหน้า Apps Script (กด Run ได้ จะสร้างผู้ใช้ test0000 แล้วลบทิ้ง) ---------------- */
 function testPost() {
-  const call = o => doPost({ postData: { contents: JSON.stringify(Object.assign({ token: TOKEN, sid: 'test0000', pin: 'testhash' }, o)) } }).getContent();
-  Logger.log('register: ' + call({ action: 'register', profile: { type: 'st', name: 'ทดสอบ ระบบ', sec: '-' } }));
-  Logger.log('login pump: ' + call({ action: 'login' }));
-  Logger.log('login incubator: ' + call({ action: 'login', app: 'incubator' }));
-  Logger.log('score pump: ' + call({ mod: 'ทดสอบ', item: 'ทดสอบการเชื่อมต่อ', score: 1, max: 1, key: 'test' }));
-  Logger.log('score incubator: ' + call({ action: 'score', mod: 'ทดสอบ', item: 'ทดสอบการเชื่อมต่อ', score: 1, max: 1, key: 'test', app: 'incubator' }));
-  Logger.log('enroll: ' + call({ action: 'enroll', app: 'incubator' }));
-  Logger.log('portal: ' + call({ action: 'portal' }));
-  Logger.log('verify: ' + call({ action: 'verify', ref: 'IIT-2569-001' }));
+  const call = o => JSON.parse(doPost({ postData: { contents: JSON.stringify(Object.assign({ token: TOKEN }, o)) } }).getContent());
+  const pw = 'Test#2569x';
+  const reg = call({ action: 'register', sid: 'test0000', pw, profile: { type: 'st', name: 'ทดสอบ ระบบ', sec: '-' } });
+  Logger.log('register: ' + reg.ok + ' ' + (reg.err || ''));
+  const lg = call({ action: 'login', sid: 'test0000', pw });
+  Logger.log('login: ' + lg.ok + ' ' + (lg.err || ''));
+  Logger.log('enroll: ' + JSON.stringify(call({ action: 'enroll', tk: lg.tk, app: 'incubator' })));
+  Logger.log('app: ' + call({ action: 'app', tk: lg.tk, app: 'incubator' }).ok);
+  Logger.log('wrong password: ' + JSON.stringify(call({ action: 'login', sid: 'test0000', pw: 'Wrong#123' })));
+  Logger.log('verify: ' + JSON.stringify(call({ action: 'verify', ref: 'IIT-2569-001' })));
+  deleteUserData_('test0000', false);
+  Logger.log('ลบผู้ใช้ทดสอบแล้ว');
 }
 
 /* ---------------- เมนูใน Google Sheets ---------------- */
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
+  ui.createMenu('ผู้ใช้')
+    .addItem('ดูข้อมูลผู้ใช้ที่เลือก', 'adminInfo')
+    .addItem('รีเซ็ตรหัสผ่าน (ออกรหัสชั่วคราว)', 'adminResetPassword')
+    .addItem('ระงับ / เปิดใช้บัญชี', 'adminToggleSuspend')
+    .addItem('ยกเลิกการลงทะเบียนวิชา', 'adminUnenroll')
+    .addSeparator()
+    .addItem('ลบผู้ใช้และข้อมูลทั้งหมด', 'adminDeleteUser')
+    .addSeparator()
+    .addItem('วิธีใช้เมนูนี้', 'adminHelp')
+    .addToUi();
   ui.createMenu('เกียรติบัตร')
     .addSubMenu(ui.createMenu('Infusion Pump')
       .addItem('1) สร้างแม่แบบเกียรติบัตร (ครั้งแรกครั้งเดียว)', 'makeTemplate')
@@ -275,6 +392,115 @@ function onOpen() {
       .addItem('2) สรุปผลผ่านเกณฑ์', 'evaluateIncubator')
       .addItem('3) ออกเกียรติบัตรให้ผู้ผ่านเกณฑ์', 'createCertificatesIncubator'))
     .addToUi();
+}
+
+/* ---------------- จัดการผู้ใช้ (เลือกแถวในแท็บ users ก่อน แล้วกดเมนู) ---------------- */
+function selUser_() {
+  const ui = SpreadsheetApp.getUi(), ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getActiveSheet();
+  if (sh.getName() !== USER_SHEET) { ui.alert('ให้เปิดแท็บ "' + USER_SHEET + '" แล้วคลิกเลือกแถวของผู้ใช้ก่อน'); return null; }
+  const row = sh.getActiveRange().getRow();
+  if (row < 2 || row > sh.getLastRow()) { ui.alert('ให้คลิกเลือกแถวของผู้ใช้ (แถวที่ 2 ลงไป) ก่อน'); return null; }
+  return userAt_(sheet_(USER_SHEET, UHEAD), row);
+}
+const who_ = u => u.name + ' (' + u.sid + ')';
+function bumpVer_(u) { u.ver += 1; setU_(u, U.ver, u.ver); }
+
+function adminHelp() {
+  SpreadsheetApp.getUi().alert('วิธีใช้เมนู "ผู้ใช้"\n\n'
+    + '1) เปิดแท็บ "users" แล้วคลิกแถวของผู้ใช้ที่ต้องการ\n2) เลือกคำสั่งจากเมนู "ผู้ใช้"\n\n'
+    + '• แก้ชื่อ-สกุล กลุ่ม หน่วยงาน หรือตำแหน่ง: พิมพ์แก้ในเซลล์ได้เลย (เกียรติบัตรจะใช้ชื่อจากแท็บ users)\n'
+    + '• ห้ามแก้คอลัมน์ "รหัสผู้ใช้" และ "รหัสผ่าน" ด้วยมือ\n'
+    + '• ผู้เรียนลืมรหัสผ่าน: ใช้ "รีเซ็ตรหัสผ่าน" แล้วแจ้งรหัสชั่วคราวให้ผู้เรียน ผู้เรียนจะต้องตั้งรหัสใหม่ตอนเข้าสู่ระบบ\n'
+    + '• บัญชีถูกล็อกเพราะใส่รหัสผิด 5 ครั้ง: รอ 15 นาที หรือใช้ "รีเซ็ตรหัสผ่าน" เพื่อปลดล็อกทันที\n'
+    + '• ผู้เรียนขอลบข้อมูลตาม PDPA: ใช้ "ลบผู้ใช้และข้อมูลทั้งหมด"');
+}
+
+function adminInfo() {
+  const u = selUser_(); if (!u) return;
+  const st = enrollState_(u.sid), prog = progressOf_(u.sid), certs = certsOf_(u.sid);
+  const lines = Object.keys(APPS).map(a => '• ' + APPS[a].name + ': ' + (st[a] ? 'ลงทะเบียนแล้ว' : (a in st ? 'ยกเลิกแล้ว' : 'ไม่ได้ลงทะเบียน'))
+    + (prog[a].started ? ' · ความคืบหน้า ' + prog[a].pct + '%' + (prog[a].pass ? ' (ผ่านเกณฑ์)' : '') : ''));
+  const locked = u.lockUntil > Date.now();
+  SpreadsheetApp.getUi().alert(who_(u) + '\n\n'
+    + 'สถานะ: ' + (u.suspended ? 'ระงับ' : 'ใช้งาน') + (locked ? ' · ล็อกชั่วคราวถึง ' + Utilities.formatDate(new Date(u.lockUntil), 'Asia/Bangkok', 'HH:mm') : '')
+    + (u.must ? ' · รอผู้เรียนตั้งรหัสผ่านใหม่' : '') + (u.cred && u.cred.indexOf('v2$') !== 0 ? ' · ยังใช้ PIN แบบเดิม' : '') + '\n\n'
+    + 'วิชา\n' + lines.join('\n') + '\n\n'
+    + 'เกียรติบัตรทางการ: ' + (certs.length ? certs.map(c => c.ref).join(', ') : 'ยังไม่มี'));
+}
+
+/* รหัสชั่วคราว 10 ตัว ตรงตามนโยบาย (ตัดตัวที่อ่านสับสน เช่น O 0 l 1) */
+function tempPw_() {
+  const sets = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnpqrstuvwxyz', '23456789', '#@%+=!?'];
+  const all = sets.join(''), rnd = [];
+  while (rnd.length < 12) Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid()).forEach(b => rnd.push((b + 256) % 256));
+  const pick = (s, i) => s.charAt(rnd[i] % s.length);
+  const chars = sets.map((s, i) => pick(s, i));
+  for (let i = 4; i < 10; i++) chars.push(pick(all, i));
+  for (let i = chars.length - 1; i > 0; i--) { const j = rnd[i + 12] % (i + 1); const t = chars[i]; chars[i] = chars[j]; chars[j] = t; }
+  return chars.join('');
+}
+
+function adminResetPassword() {
+  const u = selUser_(); if (!u) return;
+  const ui = SpreadsheetApp.getUi();
+  if (ui.alert('รีเซ็ตรหัสผ่านของ ' + who_(u) + ' ?\n\nระบบจะออกรหัสชั่วคราว ผู้เรียนต้องใช้รหัสนี้เข้าสู่ระบบแล้วตั้งรหัสใหม่ และทุกเครื่องที่ล็อกอินอยู่จะถูกออกจากระบบ', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  const pw = tempPw_();
+  setU_(u, U.cred, makeCred_(pw)); setU_(u, U.must, 'ใช่'); setU_(u, U.fails, 0); setU_(u, U.lock, ''); bumpVer_(u);
+  ui.alert('รหัสผ่านชั่วคราวของ ' + who_(u) + '\n\n' + pw + '\n\nแจ้งรหัสนี้ให้ผู้เรียนทางช่องทางส่วนตัว (รหัสนี้จะไม่แสดงอีก)');
+}
+
+function adminToggleSuspend() {
+  const u = selUser_(); if (!u) return;
+  const ui = SpreadsheetApp.getUi();
+  if (u.suspended) {
+    if (ui.alert('เปิดใช้บัญชี ' + who_(u) + ' อีกครั้ง?', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+    setU_(u, U.status, 'ใช้งาน'); ui.alert('เปิดใช้บัญชีแล้ว');
+  } else {
+    if (ui.alert('ระงับบัญชี ' + who_(u) + ' ?\n\nผู้เรียนจะเข้าสู่ระบบและส่งคะแนนไม่ได้ ข้อมูลและคะแนนยังอยู่ครบ', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+    setU_(u, U.status, SUSPENDED); bumpVer_(u); ui.alert('ระงับบัญชีแล้ว');
+  }
+}
+
+function adminUnenroll() {
+  const u = selUser_(); if (!u) return;
+  const ui = SpreadsheetApp.getUi(), list = enrolledApps_(u.sid);
+  if (!list.length) { ui.alert(who_(u) + ' ยังไม่ได้ลงทะเบียนวิชาใด'); return; }
+  const r = ui.prompt('ยกเลิกการลงทะเบียนของ ' + who_(u),
+    list.map((a, i) => (i + 1) + ') ' + APPS[a].name).join('\n') + '\n\nพิมพ์หมายเลขวิชาที่ต้องการยกเลิก (คะแนนเดิมยังเก็บไว้ ถ้าผู้เรียนลงทะเบียนใหม่จะเรียนต่อได้)', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const app = list[parseInt(r.getResponseText(), 10) - 1];
+  if (!app) { ui.alert('หมายเลขไม่ถูกต้อง'); return; }
+  const sh = sheet_(ENROLL_SHEET, EHEAD);
+  sh.appendRow([new Date(), u.sid, u.name, app, 'ผู้ดูแลระบบ', CANCELLED]);
+  sh.getRange(sh.getLastRow(), 2).setNumberFormat('@').setValue(u.sid);
+  ui.alert('ยกเลิกการลงทะเบียน ' + APPS[app].name + ' ของ ' + who_(u) + ' แล้ว');
+}
+
+/* ลบแถวทุกแถวที่คอลัมน์ col ตรงกับ sid (ลบจากล่างขึ้นบน) */
+function deleteRowsOf_(sh, col, sid) {
+  if (!sh || sh.getLastRow() < 2) return 0;
+  const rows = sh.getRange(2, col, sh.getLastRow() - 1, 1).createTextFinder(sid).matchEntireCell(true).findAll().map(c => c.getRow()).sort((a, b) => b - a);
+  rows.forEach(r => sh.deleteRow(r));
+  return rows.length;
+}
+function deleteUserData_(sid, withCerts) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), n = {};
+  n.scores = deleteRowsOf_(ss.getSheetByName(SHEET_NAME), 2, sid);
+  n.enroll = deleteRowsOf_(ss.getSheetByName(ENROLL_SHEET), 2, sid);
+  n.certs = 0;
+  if (withCerts) Object.keys(APPS).forEach(a => n.certs += deleteRowsOf_(ss.getSheetByName(APPS[a].logSheet), 1, sid));
+  n.user = deleteRowsOf_(ss.getSheetByName(USER_SHEET), 2, sid);
+  return n;
+}
+function adminDeleteUser() {
+  const u = selUser_(); if (!u) return;
+  const ui = SpreadsheetApp.getUi();
+  if (ui.alert('ลบ ' + who_(u) + ' ถาวร?\n\nจะลบบัญชี คะแนนทั้งหมด และการลงทะเบียนเรียน กู้คืนไม่ได้', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  const hasCert = certsOf_(u.sid).length > 0;
+  const withCerts = hasCert && ui.alert('ผู้ใช้นี้มีเกียรติบัตรทางการแล้ว\n\nลบประวัติเกียรติบัตรด้วยไหม?\n(ถ้าลบ จะตรวจสอบเลขที่เกียรติบัตรบนเว็บไม่ได้อีก ไฟล์ PDF ใน Google Drive ต้องลบเอง)', ui.ButtonSet.YES_NO) === ui.Button.YES;
+  const n = deleteUserData_(u.sid, withCerts);
+  ui.alert('ลบแล้ว: บัญชี ' + n.user + ' · คะแนน ' + n.scores + ' แถว · การลงทะเบียน ' + n.enroll + ' แถว' + (withCerts ? ' · ประวัติเกียรติบัตร ' + n.certs + ' แถว' : '')
+    + '\n\nแท็บ "สรุป" จะอัปเดตเมื่อกด "สรุปผลผ่านเกณฑ์" ครั้งถัดไป');
 }
 
 /* ชื่อฟังก์ชันเดิมของ pump คงไว้ เพื่อให้ปุ่มหรือทริกเกอร์ที่ผูกไว้ยังใช้ได้ */
