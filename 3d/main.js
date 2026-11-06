@@ -8,7 +8,9 @@ import { CSS2DRenderer, CSS2DObject } from "./lib/CSS2DRenderer.js";
 const MODE = new URLSearchParams(location.search).get("mode") === "clin" ? "clin" : "tech";
 const PARTS = Object.assign({}, window.PARTS || {}, window.EXTRA3D || {});
 const CLIN = window.CLIN3D || {}, GROUPS = window.GROUPS3D || [];
-const MOBILE = matchMedia("(max-width:900px)").matches;
+/* โหมดจอแคบ: มือถือ แท็บเล็ตแนวตั้ง และมือถือที่เปิด "เว็บไซต์เดสก์ท็อป" (ต้องตรงกับ @media ใน style.css) */
+const NARROW = matchMedia("(max-width:900px), (orientation:portrait) and (max-width:1200px)");
+const MOBILE = NARROW.matches;
 
 if (MODE === "clin") {
   const b = document.getElementById("back");
@@ -27,7 +29,7 @@ stage.appendChild(labelR.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(38, 1, 1, 3000);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; controls.minDistance = 70; controls.maxDistance = 480;
+controls.enableDamping = true; controls.minDistance = 70; controls.maxDistance = 900;
 controls.target.set(0, 100, 0);
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8a96a8, 1.5));
@@ -429,6 +431,7 @@ const side = document.getElementById("side");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 function groupOf(id) { const g = GROUPS.find(g => g.ids.includes(id)); return g ? g.t : ""; }
 function renderSide() {
+  side.scrollTop = 0;
   if (!selected) {
     side.innerHTML = `<h2>ชิ้นส่วนทั้งหมด</h2>
       <p class="en">${MODE === "clin" ? "โหมดพยาบาล · เน้นสิ่งที่ผู้ใช้ต้องดูแล" : "โหมดช่าง · หน้าที่ หลักการ อาการเสีย และวิธีตรวจ"}</p>
@@ -468,9 +471,19 @@ function toast(msg, ok) {
 /* ---------- แถบเครื่องมือ ---------- */
 const VIEWS = { iso: [[175, 180, 235], [0, 88, 0]], front: [[0, 105, 260], [0, 92, 0]], side: [[270, 110, 0], [0, 92, 0]], top: [[0, 320, 40], [0, 95, 0]] };
 let camAnim = null;
-function view(v) {
-  const [p, t] = VIEWS[v];
-  camAnim = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: new THREE.Vector3(...p), t1: new THREE.Vector3(...t) };
+let curView = "iso";
+/* ระยะกล้องให้ทั้งตู้พอดีจอทุกสัดส่วน (จอแนวตั้งจะถอยกล้องออกให้เห็นครบ) */
+function fitPos(v) {
+  const [p, t] = VIEWS[v], tv = new THREE.Vector3(...t), dir = new THREE.Vector3(...p).sub(tv).normalize();
+  const vf = THREE.MathUtils.degToRad(camera.fov), hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
+  const dist = 100 / Math.sin(Math.min(vf, hf) / 2) * 1.04;
+  return [tv.clone().addScaledVector(dir, dist), tv];
+}
+function view(v, instant) {
+  curView = v;
+  const [p1, t1] = fitPos(v);
+  if (instant) { camAnim = null; camera.position.copy(p1); controls.target.copy(t1); }
+  else camAnim = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1, t1 };
   document.querySelectorAll("#views button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
 }
 document.querySelectorAll("#views button").forEach(b => b.onclick = () => view(b.dataset.v));
@@ -522,10 +535,14 @@ function resize() {
   renderer.setSize(w, h, false); labelR.setSize(w, h);
   camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
 }
-new ResizeObserver(resize).observe(stage);
-resize();
-camera.position.set(...VIEWS.iso[0]); controls.target.set(...VIEWS.iso[1]);
-if (MOBILE) { camera.position.multiplyScalar(1.25); camera.position.y = 190; }
+/* เปลี่ยนขนาดจอหรือหมุนเครื่อง: จัดกล้องให้พอดีใหม่ */
+let lastAspect = 0, refitT = 0;
+new ResizeObserver(() => {
+  resize();
+  if (Math.abs(camera.aspect - lastAspect) > 0.15) { lastAspect = camera.aspect; clearTimeout(refitT); refitT = setTimeout(() => view(curView, true), 60); }
+}).observe(stage);
+resize(); lastAspect = camera.aspect;
+view("iso", true);
 
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
@@ -545,12 +562,15 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera); labelR.render(scene, camera);
 });
 
-/* มือถือ: ย้ายแถบเครื่องมือออกมาไว้ใต้ภาพ และปิดป้ายชื่อไว้ก่อนเพื่อไม่ให้รก */
-if (MOBILE) {
-  document.querySelector(".main").insertBefore(document.querySelector(".bar"), side);
-  bLbl.classList.remove("on"); labelR.domElement.classList.add("off");
-  resize();
+/* จอแคบ: ย้ายแถบเครื่องมือมาไว้ใต้ภาพเป็นแถวเลื่อนซ้าย-ขวา และปิดป้ายชื่อไว้ก่อนเพื่อไม่ให้รก */
+const bar = document.querySelector(".bar");
+function layout(narrow) {
+  if (narrow) document.querySelector(".main").insertBefore(bar, side);
+  else stage.appendChild(bar);
 }
+layout(MOBILE);
+if (MOBILE) { bLbl.classList.remove("on"); labelR.domElement.classList.add("off"); }
+NARROW.addEventListener("change", e => layout(e.matches));
 document.getElementById("loading").remove();
 renderSide();
 window.__inc3d = { A, toggle, select, view };   // ใช้ทดสอบ

@@ -60,15 +60,35 @@ button{font:inherit;cursor:pointer}
 .care h3{margin:0 0 6px;color:#9a3b0b}
 .note{color:var(--muted);font-size:13px;margin-top:18px}
 
-@media (max-width:900px){
-  .main{grid-template-columns:1fr;grid-template-rows:62vh auto}
-  .side{border-left:0;border-top:1px solid var(--line)}
+/* ===== จอแคบ: มือถือ แท็บเล็ตแนวตั้ง (ต้องตรงกับ NARROW ใน main.js) =====
+   ทั้งหน้าไม่เลื่อน ภาพเครื่องอยู่ด้านบนตลอด แถบเครื่องมือเลื่อนซ้าย-ขวา แผงคำอธิบายเลื่อนอยู่ด้านล่าง */
+@media (max-width:900px), (orientation:portrait) and (max-width:1200px){
+  html,body{height:100%;overflow:hidden}
+  body{height:100dvh}
+  .top{padding:8px 12px;gap:10px}
+  .logo{width:36px;height:36px;border-radius:10px;font-size:14px}
+  .ttl h1{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ttl p{display:none}
+  .back{padding:6px 10px;font-size:14px}
   .hint{display:none}
-  .main{grid-template-rows:56vh auto auto}
-  .main>.bar{position:static;transform:none;margin:10px auto 0;box-shadow:none;width:auto;max-width:calc(100% - 16px);padding:8px;gap:6px}
-  .bar button{padding:5px 9px;font-size:13px}
-  .ex input{width:120px}
-  body{display:block;height:auto}
-  .top{position:sticky;top:0;z-index:10}
+  .main{display:flex;flex-direction:column;min-height:0}
+  .stage{flex:none;height:min(52dvh,560px)}
+  .main>.bar{position:static;transform:none;flex:none;width:100%;max-width:none;margin:0;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;box-shadow:none;padding:8px 10px;
+    flex-direction:row;gap:8px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#fff}
+  .main>.bar::-webkit-scrollbar{display:none}
+  .main>.bar .row{flex-wrap:nowrap;flex:none;gap:8px}
+  .main>.bar button{white-space:nowrap;padding:7px 12px;font-size:14px}
+  .main>.bar .ex{white-space:nowrap;padding-right:4px}
+  .ex input{width:130px}
+  .side{flex:1;min-height:0;border-left:0;overflow-y:auto;padding:14px 16px 24px}
+  .side h2{font-size:20px}
+}
+
+/* มือถือแนวนอน (จอเตี้ย): ภาพซ้ายเต็มความสูง แถบเครื่องมือใต้ภาพ แผงคำอธิบายด้านขวา */
+@media (orientation:landscape) and (max-height:520px){
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:minmax(0,1fr) auto}
+  .stage{grid-column:1;grid-row:1;height:auto;min-height:0}
+  .main>.bar{grid-column:1;grid-row:2}
+  .side{grid-column:2;grid-row:1/3;border-left:1px solid var(--line);border-top:0}
+  .top{padding:6px 12px}
 }
