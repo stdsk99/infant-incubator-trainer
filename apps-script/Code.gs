@@ -1,6 +1,7 @@
 /* Google Apps Script สำหรับศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์ (ใช้ Google Sheet และบัญชีผู้เรียนร่วมกันทุกแอป)
    แอปที่รองรับ: pump = Infusion Pump Repair Trainer, incubator = Infant Incubator Repair Trainer,
-   incubator-clin = วิชาคลินิก การใช้ตู้อบทารกอย่างปลอดภัย
+   incubator-clin = วิชาคลินิก การใช้ตู้อบทารกอย่างปลอดภัย,
+   pump-clin = วิชาคลินิก การใช้เครื่องควบคุมการให้สารละลายอย่างปลอดภัย
    1) สมัคร / เข้าสู่ระบบ / เปลี่ยนรหัสผ่าน ทำที่เว็บหลัก (stdsk99/medtechcenter) ที่เดียว
       แอปฝึกซ่อมรับ "บัตรผ่าน" (session token) จากเว็บหลัก แล้วใช้ส่งคะแนน
    2) เมนู "ผู้ใช้" ใน Google Sheets: ดูข้อมูล รีเซ็ตรหัสผ่าน ระงับบัญชี ยกเลิกการลงทะเบียน (ไม่มีการลบผู้ใช้)
@@ -77,6 +78,20 @@ const APPS = {
     },
     ref: 'IIC', tmplKey: 'TEMPLATE_ID_incubator_clin', logSheet: 'เกียรติบัตร ตู้อบคลินิก', sumSheet: 'สรุป ตู้อบคลินิก',
     folder: 'เกียรติบัตร Infant Incubator Clinical', tmplName: 'แม่แบบเกียรติบัตร Infant Incubator Clinical Use'
+  },
+  'pump-clin': {
+    name: 'Infusion Pump Clinical Use', kind: 'clinical',
+    crit: { readLessons: 9, simPct: 80, quizPct: 80 },
+    cert: {
+      org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      org2: '',
+      title: 'การใช้เครื่องควบคุมการให้สารละลายอย่างปลอดภัย (Infusion Pump Clinical Use)',
+      subject: 'ของศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      signer: 'รศ.ดร.ณัฐดนัย สิงห์คลีวรรณ',
+      signerPos: 'ผู้จัดทำสื่อการเรียนรู้'
+    },
+    ref: 'IPC', tmplKey: 'TEMPLATE_ID_pump_clin', logSheet: 'เกียรติบัตร ปั๊มคลินิก', sumSheet: 'สรุป ปั๊มคลินิก',
+    folder: 'เกียรติบัตร Infusion Pump Clinical', tmplName: 'แม่แบบเกียรติบัตร Infusion Pump Clinical Use'
   }
 };
 const appOf_ = a => (APPS[String(a || '').trim()] ? String(a).trim() : DEFAULT_APP);
@@ -440,6 +455,10 @@ function onOpen() {
       .addItem('1) สร้างแม่แบบเกียรติบัตร (ครั้งแรกครั้งเดียว)', 'makeTemplateIncubatorClin')
       .addItem('2) สรุปผลผ่านเกณฑ์', 'evaluateIncubatorClin')
       .addItem('3) ออกเกียรติบัตรให้ผู้ผ่านเกณฑ์', 'createCertificatesIncubatorClin'))
+    .addSubMenu(ui.createMenu('Infusion Pump วิชาคลินิก')
+      .addItem('1) สร้างแม่แบบเกียรติบัตร (ครั้งแรกครั้งเดียว)', 'makeTemplatePumpClin')
+      .addItem('2) สรุปผลผ่านเกณฑ์', 'evaluatePumpClin')
+      .addItem('3) ออกเกียรติบัตรให้ผู้ผ่านเกณฑ์', 'createCertificatesPumpClin'))
     .addToUi();
 }
 
@@ -552,6 +571,9 @@ function createCertificatesIncubator() { createCertificates_('incubator'); }
 function makeTemplateIncubatorClin() { makeTemplate_('incubator-clin'); }
 function evaluateIncubatorClin() { evaluate_('incubator-clin'); }
 function createCertificatesIncubatorClin() { createCertificates_('incubator-clin'); }
+function makeTemplatePumpClin() { makeTemplate_('pump-clin'); }
+function evaluatePumpClin() { evaluate_('pump-clin'); }
+function createCertificatesPumpClin() { createCertificates_('pump-clin'); }
 
 /* สร้างแม่แบบใน Google Slides (อาจารย์เปิดไปเพิ่มโลโก้และลายเซ็นได้) */
 function makeTemplate_(app) {
