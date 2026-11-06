@@ -32,3 +32,5 @@
 .trend .mine{fill:none;stroke:var(--ink);stroke-width:2.5}
 .trend .mine-pt{fill:var(--ink)}
 a.btn{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;background:var(--card)}
+
+.go3d{display:inline-block;margin:0 6px 4px 0;padding:8px 14px;border-radius:10px;background:var(--accent);color:#fff!important;text-decoration:none;font-weight:700}
