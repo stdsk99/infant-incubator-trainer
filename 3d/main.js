@@ -475,7 +475,8 @@ let curView = "iso";
 /* ระยะกล้องให้ทั้งตู้พอดีจอทุกสัดส่วน (จอแนวตั้งจะถอยกล้องออกให้เห็นครบ) */
 function fitPos(v) {
   const [p, t] = VIEWS[v], tv = new THREE.Vector3(...t), dir = new THREE.Vector3(...p).sub(tv).normalize();
-  const vf = THREE.MathUtils.degToRad(camera.fov), hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
+  const h = stage.clientHeight || 1, k = Math.max(0.3, (h - barH) / h);          // สัดส่วนความสูงที่ไม่ถูกแถบบัง
+  const vf = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * k), hf = 2 * Math.atan(Math.tan(vf / 2) * stage.clientWidth / (h * k));
   const dist = 100 / Math.sin(Math.min(vf, hf) / 2) * 1.04;
   return [tv.clone().addScaledVector(dir, dist), tv];
 }
@@ -530,10 +531,16 @@ function applyNodes() {
   }
 }
 const ease = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+/* แถบเครื่องมือที่ลอยทับด้านล่างภาพ (จอกว้าง): เลื่อนภาพขึ้นให้เครื่องอยู่กลางพื้นที่ที่เหลือ ไม่ถูกแถบบัง */
+let barH = 0;
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   renderer.setSize(w, h, false); labelR.setSize(w, h);
-  camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
+  const tb = document.querySelector(".bar");
+  barH = tb && tb.parentElement === stage ? Math.min(tb.offsetHeight + 24, h * 0.4) : 0;
+  camera.aspect = w / Math.max(h, 1);
+  if (barH) camera.setViewOffset(w, h, 0, barH / 2, w, h); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
 }
 /* เปลี่ยนขนาดจอหรือหมุนเครื่อง: จัดกล้องให้พอดีใหม่ */
 let lastAspect = 0, refitT = 0;
@@ -567,6 +574,7 @@ const bar = document.querySelector(".bar");
 function layout(narrow) {
   if (narrow) document.querySelector(".main").insertBefore(bar, side);
   else stage.appendChild(bar);
+  resize(); view(curView, true);
 }
 layout(MOBILE);
 if (MOBILE) { bLbl.classList.remove("on"); labelR.domElement.classList.add("off"); }
