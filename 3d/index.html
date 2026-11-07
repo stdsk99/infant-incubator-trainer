@@ -8,6 +8,7 @@
 /* ต้องเข้าสู่ระบบที่เว็บหลักก่อน (เหมือนแอปหลัก) */
 (function(){
   var clin = /[?&]mode=clin/.test(location.search);
+  if(/[?&]preview\b/.test(location.search)) return;   // โหมดดูตัวอย่าง: ไม่ต้องเข้าสู่ระบบ
   var s=null; try{ s=JSON.parse(localStorage.getItem("mtc-session")||"null"); }catch(e){}
   if(!s || !s.tk){ location.replace("/medtechcenter/course.html?c=" + (clin ? "incubator-clin" : "incubator")); }
 })();
