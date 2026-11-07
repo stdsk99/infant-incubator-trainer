@@ -24,5 +24,5 @@ window.APP_CONFIG = {
   },
 
   /* เกณฑ์ผ่าน (ต้องตรงกับ APPS['incubator-clin'].crit ใน Code.gs) */
-  criteria: { readLessons: 8, simPct: 80, quizPct: 80 }
+  criteria: { readLessons: 9, simPct: 80, quizPct: 80 }
 };

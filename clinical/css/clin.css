@@ -34,3 +34,29 @@
 a.btn{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;background:var(--card)}
 
 .go3d{display:inline-block;margin:0 6px 4px 0;padding:8px 14px;border-radius:10px;background:var(--accent);color:#fff!important;text-decoration:none;font-weight:700}
+
+/* ===== บล็อกโต้ตอบในบทเรียน (บทที่ 2 และ 9) ===== */
+.lesson h3.lsec{margin:22px 0 6px;font-size:17px;border-top:1px solid var(--line);padding-top:14px}
+.cutw{display:grid;gap:12px;margin:12px 0}
+@media (min-width:760px){ .cutw{grid-template-columns:3fr 2fr;align-items:start} }
+.cutfig{margin:0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px}
+.cutfig .part{cursor:pointer}
+.cutfig .part:focus{outline:none}
+.cutfig .part:focus .hit{stroke:var(--accent);stroke-dasharray:4 3}
+.cutinfo{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px}
+.cutinfo h3{margin:0 0 6px;font-size:17px}
+.cutinfo p{margin:6px 0}
+@media (min-width:760px){ .cutinfo{position:sticky;top:120px} }
+.lq{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:16px 0}
+.lqi{margin-top:10px}
+.lqi>p{margin:0 0 4px;font-weight:600}
+.lqi .lopts{margin-top:6px}
+.lqf .fb{margin-top:8px}
+.srow{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;display:grid;gap:6px}
+.srow p{margin:0}
+.srow .seg{flex-wrap:wrap}
+.srow .seg button{font-size:13px;padding:6px 10px}
+.srow .seg button.on{background:var(--ink);color:var(--bg)}
+.srow.good{border-color:var(--accent);background:var(--accent-soft)}
+.srow.bad{border-color:var(--warn);background:var(--warn-soft)}
+.sfb:empty{display:none}

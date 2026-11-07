@@ -67,7 +67,7 @@ const APPS = {
   /* วิชาคลินิก (พยาบาลและนักศึกษาพยาบาล): อ่านบทเรียน + เครื่องจำลอง + แบบทดสอบ */
   'incubator-clin': {
     name: 'Infant Incubator Clinical Use', kind: 'clinical',
-    crit: { readLessons: 8, simPct: 80, quizPct: 80 },
+    crit: { readLessons: 9, simPct: 80, quizPct: 80 },
     cert: {
       org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
       org2: '',

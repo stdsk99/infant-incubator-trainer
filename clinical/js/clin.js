@@ -1,6 +1,6 @@
 /* ===== วิชาคลินิก: การใช้ตู้อบทารกอย่างปลอดภัย =====
    หน้าแรก · บทเรียน (บันทึก read:<id> เมื่ออ่านจบ) · เครื่องจำลอง (csim) · แบบทดสอบ (../js/quiz.js) · ผลของฉัน (../js/score.js)
-   เกณฑ์ผ่าน: อ่านครบ 8 บท + เครื่องจำลอง ≥ 80% + แบบทดสอบ ≥ 80% */
+   เกณฑ์ผ่าน: อ่านครบ 9 บท + เครื่องจำลอง ≥ 80% + แบบทดสอบ ≥ 80% */
 (function(){
   const C=window.APP_CONFIG||{}, CR=C.criteria||{}, L=window.LESSONS, S=window.CSIM;
   const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -39,7 +39,35 @@
     if(t==="field") return `<div class="box field"><b>หน้างาน</b><p>${c}</p></div>`;
     if(t==="tip") return `<div class="hint">💡 ${c}</div>`;
     if(t==="warn") return `<div class="msg bad">⚠️ ${c}</div>`;
+    if(t==="sec") return `<h3 class="lsec">${c}</h3>`;
+    if(t==="cut") return `<div class="cutw"><figure class="cutfig"></figure><div class="cutinfo" aria-live="polite"><p class="muted">แตะส่วนประกอบในภาพเพื่ออ่านว่าทำงานอย่างไร และผู้ใช้ต้องระวังอะไร</p></div></div>`;
+    if(t==="mcq") return `<div class="lq"><b>ทบทวนท้ายบท</b> <span class="muted small">(ไม่นับคะแนน)</span>${c.map((q,k)=>`<div class="lqi" data-q="${k}"><p>${k+1}. ${esc(q.q)}</p><div class="lopts">${shuffle(q.o.map((o,j)=>j)).map(j=>`<button class="lopt" data-j="${j}">${esc(q.o[j])}</button>`).join("")}</div><div class="lqf"></div></div>`).join("")}</div>`;
+    if(t==="sort") return `<div class="lq lsort"><b>จัดกลุ่มเหตุการณ์</b> <span class="muted small">(ไม่นับคะแนน)</span><p class="small muted">เลือกให้ทุกข้อ แล้วกดตรวจคำตอบ</p>
+      ${c.items.map((it,k)=>`<div class="srow" data-s="${k}"><p>${esc(it[0])}</p><div class="seg">${c.cats.map((n,j)=>`<button data-c="${j}">${esc(n)}</button>`).join("")}</div><div class="sfb small"></div></div>`).join("")}
+      <div class="tools"><button class="primary sgo" disabled>ตรวจคำตอบ</button><span class="sres"></span></div></div>`;
     return "";
+  }
+  /* ผูกการทำงานของบล็อกโต้ตอบในบทเรียน */
+  function wire(art, X){
+    const cut=art.querySelector(".cutfig");
+    if(cut){ const tpl=document.getElementById("tpl-cut"); cut.innerHTML=tpl?tpl.innerHTML:"";
+      const info=art.querySelector(".cutinfo"), P=window.CUTCLIN||{};
+      cut.querySelectorAll(".part").forEach(g=>{ g.setAttribute("tabindex","0"); g.setAttribute("role","button");
+        const pick=()=>{ const d=P[g.dataset.id]; if(!d) return; cut.querySelectorAll(".part").forEach(x=>x.classList.toggle("sel",x===g));
+          info.innerHTML=`<h3>${esc(d.n)}</h3><p><b>ทำงานอย่างไร</b><br>${esc(d.f)}</p><p><b>ผู้ใช้ต้องระวัง</b><br>${esc(d.c)}</p>`; };
+        g.onclick=pick; g.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pick(); } }; }); }
+    const mq=X.b.find(b=>b[0]==="mcq");
+    art.querySelectorAll(".lqi").forEach(box=>{ const q=mq[1][+box.dataset.q];
+      box.querySelectorAll("[data-j]").forEach(b=>b.onclick=()=>{ const good=b.dataset.j==="0";
+        box.querySelectorAll("[data-j]").forEach(x=>{ x.disabled=true; if(x.dataset.j==="0") x.classList.add("good"); else if(x===b) x.classList.add("bad"); });
+        box.querySelector(".lqf").innerHTML=`<div class="fb ${good?"good":"bad"}"><b>${good?"✓ ถูกต้อง":"✗ ยังไม่ถูก"}</b><p>${esc(q.e)}</p></div>`; }); });
+    const so=art.querySelector(".lsort");
+    if(so){ const D=X.b.find(b=>b[0]==="sort")[1], ans={}, go=so.querySelector(".sgo");
+      so.querySelectorAll(".srow").forEach(r=>r.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{ if(r.dataset.locked) return; ans[r.dataset.s]=+b.dataset.c;
+        r.querySelectorAll("[data-c]").forEach(x=>x.classList.toggle("on",x===b)); go.disabled=Object.keys(ans).length<D.items.length; }));
+      go.onclick=()=>{ let ok=0; so.querySelectorAll(".srow").forEach(r=>{ const it=D.items[r.dataset.s], g=ans[r.dataset.s]===it[1]; if(g) ok++; r.dataset.locked=1; r.classList.add(g?"good":"bad");
+          r.querySelector(".sfb").innerHTML=`${g?"✓":"✗"} <b>${esc(D.cats[it[1]])}</b> · ${esc(it[2])}`; });
+        go.remove(); so.querySelector(".sres").innerHTML=`<b>ถูก ${ok}/${D.items.length}</b>`; }; }
   }
   function lessons(){
     const root=document.getElementById("lessons"), X=L.find(x=>x.id===cur), i=L.indexOf(X), done=has("read:"+X.id);
@@ -53,6 +81,7 @@
             ${i<L.length-1?`<button data-go="${L[i+1].id}">${esc(L[i+1].n)} ▶</button>`:`<a class="btn" href="#sim">ไปเครื่องจำลอง ▶</a>`}</div>
         </article></div>`;
     root.querySelectorAll("[data-l],[data-go]").forEach(b=>b.onclick=()=>{ cur=b.dataset.l||b.dataset.go; lessons(); (window.innerWidth<900?root.querySelector(".lesson"):root).scrollIntoView({behavior:"smooth"}); });
+    wire(root.querySelector(".lesson"), X);
     const d=root.querySelector("#ls-done");
     if(d) d.onclick=async()=>{ d.disabled=true; await Score.record({key:"read:"+X.id, mod:"บทเรียน", item:X.n, score:1, max:1}); lessons(); };
   }
