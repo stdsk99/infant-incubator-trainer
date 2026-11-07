@@ -37,8 +37,8 @@ const MAX_FAILS = 5, LOCK_MIN = 15, TOKEN_DAYS = 30, HASH_ROUNDS = 300;
    tmplKey / logSheet / sumSheet / folder = ชื่อที่ใช้เก็บแม่แบบ บันทึก และไฟล์ PDF ของแอปนั้น */
 const APPS = {
   pump: {
-    name: 'Infusion Pump Repair Trainer', kind: 'repair', clinLabel: 'เครื่องจำลองตั้งค่าทางคลินิก',
-    crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3, clinSimPct: 80 },   // clinSimPct = โมดูล 7 เครื่องจำลองการตั้งค่าทางคลินิก
+    name: 'Infusion Pump Repair Trainer', kind: 'repair', clinLabel: 'การใช้งานสำหรับช่าง',
+    crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3, clinSimPct: 80, acceptPct: 80, pmPct: 80 },   // clinSimPct = โมดูล 7 · acceptPct = โมดูล 8 ตรวจรับ · pmPct = โมดูล 9 PM
     cert: {
       org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
       org2: '',
@@ -52,7 +52,7 @@ const APPS = {
   },
   incubator: {
     name: 'Infant Incubator Repair Trainer', kind: 'repair', clinLabel: 'การใช้งานสำหรับช่าง',
-    crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3, clinSimPct: 80 },   // clinSimPct = โมดูล 7 ฝึกตั้งค่า + มุมช่าง
+    crit: { learnCases: 8, examCases: 8, examAvg: 70, quizPct: 80, orderTasks: 3, clinSimPct: 80, acceptPct: 80, pmPct: 80 },   // clinSimPct = โมดูล 7 ฝึกตั้งค่า + มุมช่าง · acceptPct = โมดูล 8 · pmPct = โมดูล 9
     cert: {
       org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
       org2: '',
@@ -312,7 +312,7 @@ function enroll_(u, d) {
 }
 
 /* ---------------- เกณฑ์ผ่าน (ใช้ร่วมกันทั้งเว็บหลัก สรุปผล และเกียรติบัตร) ---------------- */
-function newAcc_() { return { learn: {}, exam: {}, order: {}, read: {}, quiz: 0, clin: 0, csim: 0, any: false }; }
+function newAcc_() { return { learn: {}, exam: {}, order: {}, read: {}, quiz: 0, clin: 0, csim: 0, accept: 0, pm: 0, any: false }; }
 /* เพิ่มคะแนน 1 แถวเข้าตัวสะสม */
 function addScore_(p, key, sc, mx) {
   key = String(key || ''); p.any = true;
@@ -324,6 +324,8 @@ function addScore_(p, key, sc, mx) {
   if (key === 'quiz') p.quiz = Math.max(p.quiz, pc);
   if (key === 'clin:sim') p.clin = Math.max(p.clin, pc);
   if (key === 'csim') p.csim = Math.max(p.csim, pc);
+  if (key === 'accept') p.accept = Math.max(p.accept, pc);
+  if (key === 'pmplan') p.pm = Math.max(p.pm, pc);
 }
 /* ประเมินตามเกณฑ์ของแอป คืน rows (ข้อเกณฑ์ ค่า ผ่าน/ไม่ผ่าน) pass pct และ line (ข้อความบนเกียรติบัตร) */
 function evalCrit_(app, p) {
@@ -346,8 +348,11 @@ function evalCrit_(app, p) {
     row('แบบทดสอบ ≥ ' + C.quizPct + '%', p.quiz ? p.quiz + '%' : 'ยังไม่ได้ทำ', p.quiz >= C.quizPct, p.quiz / C.quizPct);
     row('ลำดับขั้นตอน ' + C.orderTasks + ' งาน', no + '/' + C.orderTasks, no >= C.orderTasks, no / C.orderTasks);
     if (C.clinSimPct) row(A.clinLabel + ' ≥ ' + C.clinSimPct + '%', p.clin ? p.clin + '%' : 'ยังไม่ได้ทำ', p.clin >= C.clinSimPct, p.clin / C.clinSimPct);
+    if (C.acceptPct) row('ตรวจรับเครื่อง ≥ ' + C.acceptPct + '%', p.accept ? p.accept + '%' : 'ยังไม่ได้ทำ', p.accept >= C.acceptPct, p.accept / C.acceptPct);
+    if (C.pmPct) row('PM ตามแผน ≥ ' + C.pmPct + '%', p.pm ? p.pm + '%' : 'ยังไม่ได้ทำ', p.pm >= C.pmPct, p.pm / C.pmPct);
     line = 'โหมดเรียนรู้ ' + nl + ' เคส · โหมดสอบเฉลี่ย ' + avg + ' คะแนน · แบบทดสอบ ' + p.quiz + '% · ลำดับขั้นตอน ' + no + ' งาน'
-      + (C.clinSimPct ? ' · ' + A.clinLabel + ' ' + p.clin + '%' : '');
+      + (C.clinSimPct ? ' · ' + A.clinLabel + ' ' + p.clin + '%' : '')
+      + (C.acceptPct ? ' · ตรวจรับ ' + p.accept + '%' : '') + (C.pmPct ? ' · PM ' + p.pm + '%' : '');
   }
   const pass = rows.every(r => r.ok);
   const pct = pass ? 100 : Math.min(99, Math.round(rows.reduce((x, r) => x + r.f, 0) / rows.length * 100));
