@@ -11,7 +11,7 @@
   const r1=x=>Math.round(x*10)/10, f1=x=>x.toFixed(1);
   const range=(a,b,s)=>{const o=[];for(let x=a;x<=b+1e-9;x+=s)o.push(r1(x));return o;};
   const TABS=[["learn","บทเรียน"],["set","ฝึกตั้งค่า"],["check","ตรวจก่อนใช้งาน"],["tech","มุมช่าง"]];
-  const MOD="7-การใช้งานสำหรับช่าง";
+  const MOD="6-การใช้งานสำหรับช่าง";
   let tab="learn", lesson=D.lessons[0].id;
 
   /* ---------- คะแนนรวม 2 ส่วน ---------- */
