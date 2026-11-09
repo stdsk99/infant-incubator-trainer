@@ -1,7 +1,9 @@
 /* Google Apps Script สำหรับศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์ (ใช้ Google Sheet และบัญชีผู้เรียนร่วมกันทุกแอป)
    แอปที่รองรับ: pump = Infusion Pump Repair Trainer, incubator = Infant Incubator Repair Trainer,
    incubator-clin = วิชาคลินิก การใช้ตู้อบทารกอย่างปลอดภัย,
-   pump-clin = วิชาคลินิก การใช้เครื่องควบคุมการให้สารละลายอย่างปลอดภัย
+   pump-clin = วิชาคลินิก การใช้เครื่องควบคุมการให้สารละลายอย่างปลอดภัย,
+   o2-clin = วิชาคลินิก การใช้เครื่องผลิตออกซิเจนอย่างปลอดภัย,
+   o2 = Oxygen Concentrator Repair Trainer (เกณฑ์แบบ kind 'o2': ด่านความปลอดภัย + ท้ายบท 7 โมดูล + โจทย์ซ่อม 10 เคส + คะแนนรวม)
    1) สมัคร / เข้าสู่ระบบ / เปลี่ยนรหัสผ่าน ทำที่เว็บหลัก (stdsk99/medtechcenter) ที่เดียว
       แอปฝึกซ่อมรับ "บัตรผ่าน" (session token) จากเว็บหลัก แล้วใช้ส่งคะแนน
    2) เมนู "ผู้ใช้" ใน Google Sheets: ดูข้อมูล รีเซ็ตรหัสผ่าน ระงับบัญชี ยกเลิกการลงทะเบียน (ไม่มีการลบผู้ใช้)
@@ -78,6 +80,36 @@ const APPS = {
     },
     ref: 'IIC', tmplKey: 'TEMPLATE_ID_incubator_clin', logSheet: 'เกียรติบัตร ตู้อบคลินิก', sumSheet: 'สรุป ตู้อบคลินิก',
     folder: 'เกียรติบัตร Infant Incubator Clinical', tmplName: 'แม่แบบเกียรติบัตร Infant Incubator Clinical Use'
+  },
+  /* เครื่องผลิตออกซิเจน: ด่านความปลอดภัย (key safety) ท้ายบท (mq:m1..m7) โจทย์ซ่อมโหมดสอบ (exam:c1..c10)
+     คะแนนรวม = เฉลี่ยของท้ายบท 7 โมดูล (ร้อยละ ครั้งที่ดีที่สุด) กับเฉลี่ยโหมดสอบ */
+  o2: {
+    name: 'Oxygen Concentrator Repair Trainer', kind: 'o2',
+    crit: { safety: 5, passPct: 80, modQuiz: 7, examCases: 10, totalPct: 80 },   // passPct = เกณฑ์ผ่านท้ายบทแต่ละโมดูล
+    cert: {
+      org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      org2: '',
+      title: 'การฝึกซ่อมและบำรุงรักษาเครื่องผลิตออกซิเจน (Oxygen Concentrator)',
+      subject: 'ของศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      signer: 'รศ.ดร.ณัฐดนัย สิงห์คลีวรรณ',
+      signerPos: 'ผู้จัดทำสื่อการเรียนรู้'
+    },
+    ref: 'OCT', tmplKey: 'TEMPLATE_ID_o2', logSheet: 'เกียรติบัตร ออกซิเจน', sumSheet: 'สรุป ออกซิเจน',
+    folder: 'เกียรติบัตร Oxygen Concentrator', tmplName: 'แม่แบบเกียรติบัตร Oxygen Concentrator Trainer'
+  },
+  'o2-clin': {
+    name: 'Oxygen Concentrator Clinical Use', kind: 'clinical',
+    crit: { readLessons: 9, simPct: 80, quizPct: 80 },   // read:<บท> บันทึกเมื่อผ่านท้ายบท 4/5
+    cert: {
+      org1: 'ศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      org2: '',
+      title: 'การใช้เครื่องผลิตออกซิเจนอย่างปลอดภัย (Oxygen Concentrator Clinical Use)',
+      subject: 'ของศูนย์การเรียนรู้เทคโนโลยีทางการแพทย์',
+      signer: 'รศ.ดร.ณัฐดนัย สิงห์คลีวรรณ',
+      signerPos: 'ผู้จัดทำสื่อการเรียนรู้'
+    },
+    ref: 'OCC', tmplKey: 'TEMPLATE_ID_o2_clin', logSheet: 'เกียรติบัตร ออกซิเจนคลินิก', sumSheet: 'สรุป ออกซิเจนคลินิก',
+    folder: 'เกียรติบัตร Oxygen Concentrator Clinical', tmplName: 'แม่แบบเกียรติบัตร Oxygen Concentrator Clinical Use'
   },
   'pump-clin': {
     name: 'Infusion Pump Clinical Use', kind: 'clinical',
@@ -312,9 +344,9 @@ function enroll_(u, d) {
 }
 
 /* ---------------- เกณฑ์ผ่าน (ใช้ร่วมกันทั้งเว็บหลัก สรุปผล และเกียรติบัตร) ---------------- */
-function newAcc_() { return { learn: {}, exam: {}, order: {}, read: {}, mq: {}, quiz: 0, clin: 0, csim: 0, accept: 0, pm: 0, any: false }; }
-/* สอบท้ายโมดูล (key mq:<id>) นับว่าผ่านเมื่อได้อย่างน้อยร้อยละนี้ */
+/* สอบท้ายโมดูล/ท้ายบท (key mq:<id>) นับว่าผ่านเมื่อได้อย่างน้อยร้อยละนี้ (4 จาก 5 ข้อ) */
 const MQ_PASS_PCT = 80;
+function newAcc_() { return { learn: {}, exam: {}, order: {}, read: {}, mq: {}, safety: 0, quiz: 0, clin: 0, csim: 0, accept: 0, pm: 0, any: false }; }
 /* เพิ่มคะแนน 1 แถวเข้าตัวสะสม */
 function addScore_(p, key, sc, mx) {
   key = String(key || ''); p.any = true;
@@ -323,24 +355,36 @@ function addScore_(p, key, sc, mx) {
   if (key.indexOf('order:') === 0) p.order[key] = 1;
   if (key.indexOf('read:') === 0) p.read[key] = 1;
   const pc = mx ? Math.round(sc / mx * 100) : 0;
+  if (key.indexOf('mq:') === 0) p.mq[key] = Math.max(p.mq[key] || 0, pc);
+  if (key === 'safety') p.safety = Math.max(p.safety, sc);
   if (key === 'quiz') p.quiz = Math.max(p.quiz, pc);
   if (key === 'clin:sim') p.clin = Math.max(p.clin, pc);
   if (key === 'csim') p.csim = Math.max(p.csim, pc);
   if (key === 'accept') p.accept = Math.max(p.accept, pc);
   if (key === 'pmplan') p.pm = Math.max(p.pm, pc);
-  if (key.indexOf('mq:') === 0 && pc >= MQ_PASS_PCT) p.mq[key] = 1;   // สอบท้ายโมดูล/ท้ายบท ผ่านเมื่อ ≥ 80% (4 จาก 5 ข้อ)
 }
 /* ประเมินตามเกณฑ์ของแอป คืน rows (ข้อเกณฑ์ ค่า ผ่าน/ไม่ผ่าน) pass pct และ line (ข้อความบนเกียรติบัตร) */
 function evalCrit_(app, p) {
   const A = APPS[app], C = A.crit, rows = [];
   const row = (t, v, ok, f) => rows.push({ t, v, ok: !!ok, f: Math.max(0, Math.min(1, f)) });
   let line;
-  if (A.kind === 'clinical') {
+  if (A.kind === 'o2') {
+    const nq = Object.keys(p.mq).filter(k => p.mq[k] >= C.passPct).length, ev = Object.keys(p.exam).map(k => p.exam[k]);
+    const avg = ev.length ? Math.round(ev.reduce((x, y) => x + y, 0) / ev.length) : 0;
+    const parts = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7'].map(m => p.mq['mq:' + m] || 0).concat([avg]);
+    const total = Math.round(parts.reduce((x, y) => x + y, 0) / parts.length);
+    p.avg = avg; p.nExam = ev.length;
+    row('ด่านความปลอดภัย ถูกครบ ' + C.safety + ' ข้อ', p.safety ? p.safety + '/' + C.safety : 'ยังไม่ได้ทำ', p.safety >= C.safety, p.safety / C.safety);
+    row('ผ่านท้ายบท ครบ ' + C.modQuiz + ' โมดูล (โมดูลละ ≥ ' + C.passPct + '%)', nq + '/' + C.modQuiz, nq >= C.modQuiz, nq / C.modQuiz);
+    row('โจทย์ซ่อม โหมดสอบ ' + C.examCases + ' เคส', ev.length + '/' + C.examCases + (ev.length ? ' · เฉลี่ย ' + avg : ''), ev.length >= C.examCases, ev.length / C.examCases);
+    row('คะแนนรวม ≥ ' + C.totalPct + '%', total + '%', total >= C.totalPct, total / C.totalPct);
+    line = 'ด่านความปลอดภัย ' + p.safety + '/' + C.safety + ' · ผ่านท้ายบท ' + nq + ' โมดูล · โจทย์ซ่อม ' + ev.length + ' เคส เฉลี่ย ' + avg + ' · คะแนนรวม ' + total + '%';
+  } else if (A.kind === 'clinical') {
     const nr = Object.keys(p.read).length;
     row('อ่านบทเรียนครบ ' + C.readLessons + ' บท', nr + '/' + C.readLessons, nr >= C.readLessons, nr / C.readLessons);
     row('เครื่องจำลอง ≥ ' + C.simPct + '%', p.csim ? p.csim + '%' : 'ยังไม่ได้ทำ', p.csim >= C.simPct, p.csim / C.simPct);
     row('แบบทดสอบ ≥ ' + C.quizPct + '%', p.quiz ? p.quiz + '%' : 'ยังไม่ได้ทำ', p.quiz >= C.quizPct, p.quiz / C.quizPct);
-    if (C.modTests) { const nm = Object.keys(p.mq).length; row('ผ่านสอบท้ายบทครบ ' + C.modTests + ' บท', nm + '/' + C.modTests, nm >= C.modTests, nm / C.modTests); }
+    if (C.modTests) { const nm = Object.keys(p.mq).filter(k => p.mq[k] >= MQ_PASS_PCT).length; row('ผ่านสอบท้ายบทครบ ' + C.modTests + ' บท', nm + '/' + C.modTests, nm >= C.modTests, nm / C.modTests); }
     line = 'บทเรียน ' + nr + ' บท · เครื่องจำลอง ' + p.csim + '% · แบบทดสอบ ' + p.quiz + '%';
   } else {
     const ev = Object.keys(p.exam).map(k => p.exam[k]), nl = Object.keys(p.learn).length, no = Object.keys(p.order).length;
@@ -354,7 +398,7 @@ function evalCrit_(app, p) {
     if (C.clinSimPct) row(A.clinLabel + ' ≥ ' + C.clinSimPct + '%', p.clin ? p.clin + '%' : 'ยังไม่ได้ทำ', p.clin >= C.clinSimPct, p.clin / C.clinSimPct);
     if (C.acceptPct) row('ตรวจรับเครื่อง ≥ ' + C.acceptPct + '%', p.accept ? p.accept + '%' : 'ยังไม่ได้ทำ', p.accept >= C.acceptPct, p.accept / C.acceptPct);
     if (C.pmPct) row('PM ตามแผน ≥ ' + C.pmPct + '%', p.pm ? p.pm + '%' : 'ยังไม่ได้ทำ', p.pm >= C.pmPct, p.pm / C.pmPct);
-    if (C.modTests) { const nm = Object.keys(p.mq).length; row('ผ่านสอบท้ายโมดูลครบ ' + C.modTests + ' โมดูล', nm + '/' + C.modTests, nm >= C.modTests, nm / C.modTests); }
+    if (C.modTests) { const nm = Object.keys(p.mq).filter(k => p.mq[k] >= MQ_PASS_PCT).length; row('ผ่านสอบท้ายโมดูลครบ ' + C.modTests + ' โมดูล', nm + '/' + C.modTests, nm >= C.modTests, nm / C.modTests); }
     line = 'โหมดเรียนรู้ ' + nl + ' เคส · โหมดสอบเฉลี่ย ' + avg + ' คะแนน · แบบทดสอบ ' + p.quiz + '% · ลำดับขั้นตอน ' + no + ' งาน'
       + (C.clinSimPct ? ' · ' + A.clinLabel + ' ' + p.clin + '%' : '')
       + (C.acceptPct ? ' · ตรวจรับ ' + p.accept + '%' : '') + (C.pmPct ? ' · PM ' + p.pm + '%' : '');
@@ -469,6 +513,14 @@ function onOpen() {
       .addItem('1) สร้างแม่แบบเกียรติบัตร (ครั้งแรกครั้งเดียว)', 'makeTemplatePumpClin')
       .addItem('2) สรุปผลผ่านเกณฑ์', 'evaluatePumpClin')
       .addItem('3) ออกเกียรติบัตรให้ผู้ผ่านเกณฑ์', 'createCertificatesPumpClin'))
+    .addSubMenu(ui.createMenu('เครื่องผลิตออกซิเจน (Oxygen Concentrator)')
+      .addItem('1) สร้างแม่แบบเกียรติบัตร (ครั้งแรกครั้งเดียว)', 'makeTemplateO2')
+      .addItem('2) สรุปผลผ่านเกณฑ์', 'evaluateO2')
+      .addItem('3) ออกเกียรติบัตรให้ผู้ผ่านเกณฑ์', 'createCertificatesO2'))
+    .addSubMenu(ui.createMenu('เครื่องผลิตออกซิเจน วิชาคลินิก')
+      .addItem('1) สร้างแม่แบบเกียรติบัตร (ครั้งแรกครั้งเดียว)', 'makeTemplateO2Clin')
+      .addItem('2) สรุปผลผ่านเกณฑ์', 'evaluateO2Clin')
+      .addItem('3) ออกเกียรติบัตรให้ผู้ผ่านเกณฑ์', 'createCertificatesO2Clin'))
     .addToUi();
 }
 
@@ -584,6 +636,12 @@ function createCertificatesIncubatorClin() { createCertificates_('incubator-clin
 function makeTemplatePumpClin() { makeTemplate_('pump-clin'); }
 function evaluatePumpClin() { evaluate_('pump-clin'); }
 function createCertificatesPumpClin() { createCertificates_('pump-clin'); }
+function makeTemplateO2() { makeTemplate_('o2'); }
+function evaluateO2() { evaluate_('o2'); }
+function createCertificatesO2() { createCertificates_('o2'); }
+function makeTemplateO2Clin() { makeTemplate_('o2-clin'); }
+function evaluateO2Clin() { evaluate_('o2-clin'); }
+function createCertificatesO2Clin() { createCertificates_('o2-clin'); }
 
 /* สร้างแม่แบบใน Google Slides (อาจารย์เปิดไปเพิ่มโลโก้และลายเซ็นได้) */
 function makeTemplate_(app) {
