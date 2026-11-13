@@ -7,6 +7,7 @@
 */
 window.APP_CONFIG = {
   app: "incubator",
+  store: "iit",   // คำนำหน้าคีย์ localStorage ของวิชานี้ (ห้ามซ้ำกับวิชาอื่น ต้องอยู่ใน STORES ของ medtechcenter/js/api.js)
   appName: "Infant Incubator Repair Trainer",
   portal: "/medtechcenter/",   // ที่อยู่เว็บหลัก (โดเมนเดียวกัน) สมัคร/เข้าสู่ระบบ/เปลี่ยนรหัสผ่านทำที่นี่ที่เดียว
   sheetUrl: "https://script.google.com/macros/s/AKfycbzLcs08L6W0fnHHZ5tCq8JjkXFPcux3G3_WT1t3vUC8zSo-oQKoACC3xHc67-h-yy6KTw/exec",
